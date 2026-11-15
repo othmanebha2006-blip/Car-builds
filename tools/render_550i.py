@@ -90,7 +90,17 @@ def fit(im, bw, bh):
 def scaled(name, w, h):
     return IMG[name].resize((max(1, w), max(1, h)), Image.LANCZOS)
 
-def place(frame, name, cx, cy, bw, bh, scale=1.0, alpha=1.0):
+# white flicker measured from the reference (30 fps): fade to white, white silhouette, back, white again
+SHINE_PATTERN = [0.5, 0.5, 0.7, 1.0, 0.7, 0.4, 0.0, 0.4, 0.7, 1.0, 0.7, 0.0]
+
+def shine_level(t, times):
+    for st in times:
+        k = int(round((t - st) * FPS))
+        if 0 <= k < len(SHINE_PATTERN):
+            return SHINE_PATTERN[k]
+    return 0.0
+
+def place(frame, name, cx, cy, bw, bh, scale=1.0, alpha=1.0, flash=0.0):
     im = IMG[name]; s = fit(im, bw, bh) * scale
     w, h = int(im.width * s), int(im.height * s)
     if w < 2 or h < 2:
@@ -100,6 +110,10 @@ def place(frame, name, cx, cy, bw, bh, scale=1.0, alpha=1.0):
     sm = scaled(name, w, h)
     if alpha < 1:
         sm = sm.copy(); sm.putalpha(sm.getchannel("A").point(lambda a: int(a * alpha)))
+    if flash > 0:
+        a_ch = sm.getchannel("A")
+        sm = Image.blend(sm.convert("RGB"), Image.new("RGB", sm.size, (255, 255, 255)), flash).convert("RGBA")
+        sm.putalpha(a_ch)
     frame.alpha_composite(sm, (int(cx - w / 2), int(cy - h / 2)))
 
 @lru_cache(maxsize=2048)
@@ -172,6 +186,7 @@ SCENES = [  # (start, kind, args)
     (T["so"], "logo_car", "f10_01_front34"),
 ]
 SCENE_T = [s[0] for s in SCENES]
+SHINES = [at("M5", 1) - 0.05, T["years"] + 0.9, T["so"] + 0.35]
 MODS = [(T["down"], "part_downpipe", "DOWNPIPES"), (T["intake"], "part_intake", "INTAKE"),
         (T["cooling"], "part_heatexchanger", "COOLING"), (T["ecu"], "part_tune", "ECU TUNE")]
 MOD_MODE = (T["start"] - 0.15, T["result"] - 0.1)
@@ -188,11 +203,12 @@ def draw_scene(fr, t):
     nxt = SCENE_T[i + 1] if i + 1 < len(SCENE_T) else TOTAL
     dt, life = t - t0, max(nxt - t0, 0.1)
     s = pop(t, t0) * (1 + 0.035 * min(dt / life, 1))   # pop-in + slow push-in
+    fl = shine_level(t, SHINES)
     if kind == "car":
-        place(fr, arg, 540, CAR_Y, 960, 520, s)
+        place(fr, arg, 540, CAR_Y, 960, 520, s, flash=fl)
     elif kind == "logo_car":
         place(fr, "logo_bmw", 540, 215, 250, 250, pop(t, t0 + 0.05))
-        place(fr, arg, 540, 590, 900, 420, s)
+        place(fr, arg, 540, 590, 900, 420, s, flash=fl)
     elif kind == "diag":
         place(fr, arg[0], 330, 300, 560, 300, pop(t, t0))
         place(fr, arg[1], 660, 640, 760, 400, pop(t, t0 + 0.12) * (1 + 0.03 * dt / life))
@@ -200,7 +216,7 @@ def draw_scene(fr, t):
         put_text(fr, typed("2014-2016", t, T["years"], 14), 540, 180, 130, BLACK)
         if t > T["years"] + 0.45:
             put_text(fr, typed("BMW 550I F10", t, T["years"] + 0.45, 22), 540, 300, 56, BLACK)
-        place(fr, arg, 540, 600, 940, 440, s)
+        place(fr, arg, 540, 600, 940, 440, s, flash=fl)
     elif kind == "price":
         place(fr, arg, 540, 600, 860, 420, s)
         if t > T["fraction"]:
@@ -312,11 +328,27 @@ def char_state(t):
         if st <= t: expr = e
     return (la, ra), tilt, dy, expr
 
+# occasional, slow posture shifts (torso lean deg, extra shoulder shift deg)
+POSTURE = [(0.0, 0.0, 0.0)] + [(3.0 + 5.3 * k + (0.9 if k % 3 == 1 else 0), *[(0.9, 1.0), (-0.7, -0.8), (0.4, 0.5), (-0.9, -1.0), (0.0, 0.0), (0.7, 0.8)][k % 6])
+                               for k in range(int(TOTAL / 5.3) + 1)]
+
+def posture(t):
+    lean = shl = 0.0
+    for st, a, b in POSTURE:
+        if st > t: break
+        x = ease_io((t - st) / 1.4); lean += (a - lean) * x; shl += (b - shl) * x
+    return lean, shl
+
 def draw_char(fr, t):
     lvl = mouth_level(t)
     blink = (t % 3.7) < 0.12 or (t % 11.3) < 0.1
     (la, ra), tilt, dy, expr = char_state(t)
-    im = RIG.pose(la, ra, tilt, lvl, blink, expr, dy)
+    lean, shl = posture(t)
+    # shoulders follow the forearm a little so the whole arm moves together
+    sh_l = max(-12, min(12, 0.12 * la)) + shl
+    sh_r = max(-12, min(12, 0.12 * ra)) - shl
+    breath = 1.2 * (0.5 - 0.5 * math.cos(2 * math.pi * t / 4.2))
+    im = RIG.pose(la, ra, tilt, lvl, blink, expr, dy, sh_l, sh_r, lean, breath)
     # normal vs. corner mode (during mods)
     a = ease_io((t - MOD_MODE[0]) / 0.35) - ease_io((t - MOD_MODE[1]) / 0.35)
     scale = (920 / im.height) * (1 - a) + (780 / im.height) * a
@@ -407,6 +439,22 @@ def sfx_ding():
     y[: int(0.07 * SR)] += lp(rng.standard_normal(int(0.07 * SR)), 5000) * 1.5 * np.exp(-np.arange(int(0.07 * SR)) / SR * 60)
     return y / np.abs(y).max()
 
+def sfx_shine():
+    """metallic 'bling' rebuilt from the reference: partials 2040/2379/2832/3887/4441 Hz, two strikes, ~0.85 s ring"""
+    d = 0.9; n = int(d * SR); t = np.arange(n) / SR
+    parts = [(2040, .23), (2379, .55), (2832, .62), (3887, 1.0), (4441, .21)]
+    y = np.zeros(n)
+    for f, amp in parts:
+        vib = 1 + 0.003 * np.sin(2 * np.pi * 6 * t)
+        y += amp * np.sin(2 * np.pi * np.cumsum(f * vib) / SR)
+    env = np.where(t < 0.2, 1.0, np.exp(-(t - 0.2) / 0.17))
+    env *= np.minimum(t / 0.002, 1)
+    env *= 1 - 0.45 * np.exp(-((t - 0.13) / 0.025) ** 2)   # small dip...
+    env += 0.5 * np.exp(-np.maximum(t - 0.18, 0) / 0.08) * (t >= 0.18)  # ...second strike
+    tr = rng.standard_normal(n) * np.exp(-t / 0.012); tr = tr - lp(tr, 5000)
+    y = y * env + 0.25 * tr
+    return y / np.abs(y).max()
+
 def build_audio(path):
     n = int(TOTAL * SR) + SR
     mix = np.zeros(n, np.float32)
@@ -446,6 +494,9 @@ def build_audio(path):
     add(bm, T["hp550_end"], 0.6)
     add(wh, MOD_MODE[0], 0.18); add(wh, MOD_MODE[1], 0.18)
     add(bm, T["so"], 0.3)
+    sh = sfx_shine()
+    for st in SHINES:
+        add(sh, st, 0.16)
     peak = np.abs(mix).max()
     if peak > 0.98: mix *= 0.98 / peak
     sf.write(path, mix[: int(TOTAL * SR)], SR)

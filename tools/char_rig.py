@@ -31,6 +31,10 @@ CFG3 = dict(
            cuff=[(332, 520), (458, 520), (458, 618), (332, 618)], pivot=(392, 586), ext_row=630, ext_top=590, xr=(342, 442)),
     cuff_rule=lambda r: (r.min(-1) > 46) & (r.max(-1) < 80) & (r.max(-1) - r.min(-1) < 14),
     elbow_r=40,
+    # chain mode: sleeve rotates at the shoulder, upper body leans at the waist
+    waist_cut=712, waist_pivot=(229, 712),
+    sleeves={"L": ([(30, 450), (100, 445), (125, 612), (0, 620), (0, 540)], (100, 476)),
+             "R": ([(428, 450), (358, 445), (333, 612), (458, 620), (458, 540)], (358, 476))},
 )
 
 # eyebrow offsets per expression: (dy_left, rot_left, dy_right, rot_right); + rot = counter-clockwise
@@ -92,12 +96,30 @@ class Rig:
             elbow = Image.new("RGBA", cw, (0, 0, 0, 0))
             ImageDraw.Draw(elbow).ellipse((ex - r, py - r, ex + r, py + r), fill=skin + (255,), outline=(0, 0, 0, 255), width=7)
             self.parts[side] = (fore, cuff, (px + PAD, py), elbow)
+            self._cmask = getattr(self, "_cmask", {}); self._cmask[side] = np.asarray(cmask) > 0
+        self.chain = "waist_cut" in cfg
+        if self.chain:
+            b = np.array(base); self.sleeves = {}
+            for side, (poly, piv) in cfg["sleeves"].items():
+                sm = (np.asarray(_poly_mask(cw, sh(poly))) > 0) & ~self._cmask[side]
+                sl = np.zeros_like(b); src_arr = np.asarray(canvas)
+                sl[sm] = src_arr[sm]
+                self.sleeves[side] = (Image.fromarray(sl), (piv[0] + PAD, piv[1]))
+                # under the moving sleeve/cuff the body shows as black (blends with the outline)
+                under = (sm | self._cmask[side]) & (b[..., 3] > 0)
+                b[under] = (0, 0, 0, 255)
+            base = Image.fromarray(b)
         # head
         hc, ho = cfg["head_cut"], cfg["head_overlap"]
         b = np.array(base); head_src = b.copy()
         b[:hc] = 0
         head_src[hc + ho:] = 0
         self.base = Image.fromarray(b)
+        if self.chain:
+            wc = cfg["waist_cut"]
+            up = b.copy(); up[wc + 6:] = 0; lo = b.copy(); lo[:wc - 4] = 0
+            self.upper_base, self.lower_base = Image.fromarray(up), Image.fromarray(lo)
+            self.waist_pivot = (cfg["waist_pivot"][0] + PAD, cfg["waist_pivot"][1])
         self.head_base = Image.fromarray(head_src)
         self.head_pivot = (cfg["head_pivot"][0] + PAD, cfg["head_pivot"][1])
         self.skin = src.getpixel(cfg["skin_pt"])[:3]
@@ -159,7 +181,31 @@ class Rig:
         self._heads[k] = im
         return im
 
-    def pose(self, left=0.0, right=0.0, tilt=0.0, mouth=0, blink=False, expr="neutral", head_dy=0):
+    def pose(self, left=0.0, right=0.0, tilt=0.0, mouth=0, blink=False, expr="neutral", head_dy=0,
+             sh_l=0.0, sh_r=0.0, torso=0.0, breath=0.0):
+        if self.chain:
+            return self._pose_chain(left, right, tilt, mouth, blink, expr, head_dy, sh_l, sh_r, torso, breath)
+        return self._pose_simple(left, right, tilt, mouth, blink, expr, head_dy)
+
+    def _pose_chain(self, left, right, tilt, mouth, blink, expr, head_dy, sh_l, sh_r, torso, breath):
+        rot = lambda im, a, c: im.rotate(a, resample=Image.BICUBIC, center=c) if abs(a) > 0.05 else im
+        upper = self.upper_base.copy()
+        for side, ang, sh in (("L", left, sh_l), ("R", -right, -sh_r)):
+            fore, cuff, piv, elbow = self.parts[side]
+            sleeve, spiv = self.sleeves[side]
+            arm = sleeve.copy()
+            if abs(ang) > 70: arm.alpha_composite(elbow)
+            arm.alpha_composite(rot(fore, ang, piv))
+            arm.alpha_composite(cuff)
+            upper.alpha_composite(rot(arm, sh, spiv))
+        h = self.head(mouth, blink, expr)
+        upper.alpha_composite(rot(h, tilt, self.head_pivot), (0, int(round(head_dy))))
+        upper = rot(upper, torso, self.waist_pivot)
+        out = self.lower_base.copy()
+        out.alpha_composite(upper, (0, -int(round(breath))))
+        return out
+
+    def _pose_simple(self, left=0.0, right=0.0, tilt=0.0, mouth=0, blink=False, expr="neutral", head_dy=0):
         """left/right: forearm angles in degrees (+ = hand moves toward the body's centre line for both arms)."""
         out = self.base.copy()
         for side, ang in (("L", left), ("R", -right)):
