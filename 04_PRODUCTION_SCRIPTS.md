@@ -137,3 +137,39 @@ So, would you daily this twin-turbo street assassin, or are you going to buy an 
 | "nearly 450 wheel horsepower" | small logo + `450HP` |
 | Driving | Rear-3/4 and front cuts, character surprised |
 | CTA | Large logo + car |
+
+---
+
+## Video 5: BMW 550i F10, "The Luxury M5 Killer" (about 85–90 s), user's script
+
+**Hook**
+If you want the performance of a BMW M5 without paying BMW M5 money, this is one of the most underrated hidden gems on the used market.
+
+`[ENGINE SOUND: twin-turbo V8 revving, ~8 s]`
+
+**Foundation**
+The foundation is the 2014 to 2016 BMW 550i F10. Since everyone's obsessed with the more expensive M5, most people completely overlook this twin-turbo V8 sedan. You can pick one up for a fraction of the M5's price, and under the hood sits a 4.4-liter twin-turbocharged N63 V8 producing 445 horsepower and 480 pound-feet of torque straight from the factory. And that's already serious power for a luxury daily driver.
+
+**Mods**
+Now, here's where things get crazy. Start with upgraded downpipes to help the turbos breathe, add a performance intake to improve airflow, and upgrade the cooling system to keep temperatures under control. Finish it all off with a proper ECU tune.
+
+**Result**
+The result? Around 500 to 550 horsepower, depending on the setup and fuel. Suddenly, this ordinary-looking executive sedan becomes a serious performance machine.
+
+**Outro / CTA**
+It pulls relentlessly on the highway, delivers that addictive twin-turbo V8 sound, and can surprise cars that cost twice as much. It's basically a luxury M5 hiding inside a businessman's daily driver. So, would you build this twin-turbo V8 sleeper, or spend the extra money on an actual M5?
+
+| Line | On screen | Image |
+|---|---|---|
+| Hook | Large BMW logo + 550i front-3/4 | `f10_01_front34`, `logo_bmw` |
+| Engine sound (8 s) | Fast cuts ≈2 s each, character excited | `f10_02_rear34`, `f10_03_side`, `f10_04_front`, `f10_08_front34_low` |
+| "2014 to 2016 BMW 550i F10" | `2014-2016` / `BMW 550I F10` typewriter | `f10_03_side` |
+| "obsessed with the M5 … overlook" | Two-car diagonal, character shrugs | `f10_01`, `f10_02` |
+| "fraction of the M5's price" | logo + `$20,000` (green) | `f10_05_rear` |
+| "4.4 twin-turbo N63 … 445 / 480" | Hood open + engine, `4.4L TWIN-TURBO V8` → `445HP / 480 LB-FT` (blue) | `f10_06_hoodopen`, `f10_07_engine` |
+| "serious power for a daily" | Car front, character points up | `f10_04_front` |
+| Mods | Character bottom-right: `DOWNPIPES` → `INTAKE` → `COOLING` → `ECU TUNE` | `part_downpipe`, `part_intake`, `part_heatexchanger`, `part_tune` |
+| "500 to 550 horsepower" | small logo + `550HP` | `f10_08_front34_low` |
+| "executive sedan … performance machine" | Rear-3/4 + side cuts | `f10_02`, `f10_03` |
+| Outro | Car cuts, character surprised | `f10_01`, `f10_05` |
+| CTA | Large logo + car, arms out | `f10_01`, `logo_bmw` |
