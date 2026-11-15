@@ -24,6 +24,7 @@ Use a new chat. These work for all 5 cars.
 | `part_headers.png` | Photorealistic studio photo of a single set of stainless steel long tube V8 exhaust headers, isolated object, plain pure white background, no text, no watermark, centered, square 1:1 |
 | `part_camshaft.png` | Photorealistic studio photo of a single performance engine camshaft, isolated object, plain pure white background, no text, no watermark, centered, square 1:1 |
 | `part_heatexchanger.png` | Photorealistic studio photo of a single aluminium car heat exchanger radiator, isolated object, plain pure white background, no text, no watermark, centered, square 1:1 |
+| `part_pulley.png` | Photorealistic studio photo of a single black aluminium supercharger pulley, isolated object, plain pure white background, no text, no watermark, centered, square 1:1 |
 | `part_tune.png` | Simple flat black line icon of a car engine control unit (ECU chip) with a small lightning bolt, minimal, plain pure white background, no text, centered, square 1:1 |
 | `part_e85.png` | Flat icon: a white circle with a thick black ring border, empty in the middle, plain pure white background, no text, square 1:1 *(I'll add "E85"/"E30" on top)* |
 
@@ -46,8 +47,12 @@ Paste **#1 first**. For #2 onwards, ChatGPT already knows the car, so the prompt
 | 8 | `CAR_08_front34_low.png` | The exact same car, low aggressive front three-quarter angle, plain pure white background, no text, entire car visible, landscape 3:2 |
 
 ### Fill-ins for each video
+**A/B/C = the 3 production videos (`04_PRODUCTION_SCRIPTS.md`): make these first.** CTS-V and V-Sport also need `part_pulley.png` and `part_headers.png`.
 | Video | CAR prefix | COLOUR | YEAR MAKE MODEL | STYLE | ENGINE | Logo file |
 |---|---|---|---|---|---|---|
+| **A** | `ctsv` | gloss black | 2017 Cadillac CTS-V sedan | lowered, aggressive body kit, black wheels, red brake calipers | Cadillac LT4 6.2 litre supercharged V8 | `logo_cadillac.png` |
+| **B** | `vsport` | gloss black | 2016 Cadillac CTS V-Sport sedan | lowered, rear wing spoiler, black wheels, red brake calipers | Cadillac 3.6 litre twin-turbo V6 | `logo_cadillac.png` |
+| **C** | `arteon` | deep metallic green | 2021 Volkswagen Arteon R-Line | lowered, black wheels, red brake calipers | Volkswagen EA888 2.0 litre turbo four-cylinder | `logo_vw.png` |
 | 1 | `stinger` | deep red | 2022 Kia Stinger GT | lowered, aggressive body kit, gloss black wheels, red brake calipers | Kia 3.3 litre twin-turbo V6 | `logo_kia.png` |
 | 2 | `q50` | pearl white | 2019 Infiniti Q50 Red Sport 400 | lowered, carbon lip, bronze wheels | Infiniti VR30DDTT 3.0 litre twin-turbo V6 | `logo_infiniti.png` |
 | 3 | `bmw340` | Estoril blue | 2018 BMW 340i F30 sedan | lowered, M Performance kit, black wheels | BMW B58 3.0 litre turbo inline-six | `logo_bmw.png` |
