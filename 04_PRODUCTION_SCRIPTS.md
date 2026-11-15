@@ -98,3 +98,42 @@ So, would you daily this all-wheel drive street assassin, or are you going to bu
 | "nearly 400 wheel horsepower" | small logo + `400HP` |
 | Driving | Rear-3/4 and front cuts, character surprised |
 | CTA | Large logo + car |
+
+---
+
+## Video 4: Genesis G70 3.3T (about 80 s) — Arteon hook/structure
+
+**Hook**
+If you want the performance of a BMW M3 without paying BMW M3 money, this is one of the most underrated hidden gems on the used market.
+
+`[ENGINE SOUND: twin-turbo V6 revving with turbo spool and blow-off, ~10 s]`
+
+**Underdog**
+At first glance, it just looks like a small, quiet luxury sedan for doctors and lawyers. I'm talking about the Genesis G70. Because it wears a Genesis badge instead of a BMW roundel, most people completely ignore it. Everyone assumes it's just a fancy Hyundai with leather seats.
+
+**Engine**
+But what they don't realize is that this car was engineered by the former head of BMW's M division, and it beat the BMW 3 Series to win Car of the Year. The foundation is the 2019 to 2023 G70 3.3T, packing a 3.3 liter twin-turbo V6 making 365 horsepower, the exact same engine as the Kia Stinger GT. You can grab one for around 25 grand, and it's an absolute tuning cheat code.
+
+**Mods**
+The mod path to wake this thing up is dangerously simple: a set of downpipes, a high-flow intake, a custom tune, and a splash of E30. That's it. Bolt-ons and software. Suddenly, this quiet commuter jumps to nearly 450 wheel horsepower.
+
+**Driving**
+With rear-wheel drive or the available all-wheel drive, it launches hard, it pulls relentlessly on the highway, and it will effortlessly walk Mustang GTs, Scat Packs, and cocky BMW owners who had no idea what they were lining up against. It's basically an M3 wearing an undercover Korean business suit.
+
+**CTA**
+So, would you daily this twin-turbo street assassin, or are you going to buy an M3 like everybody else?
+
+| Line | On screen |
+|---|---|
+| Hook | Large Genesis logo + G70 front-3/4 |
+| Engine sound | Fast car-angle cuts, character reacts |
+| "Genesis G70" | `GENESIS G70` black pill |
+| "fancy Hyundai" | Two-car diagonal, character shrugs |
+| "former head of BMW M … Car of the Year" | Car side profile, `CAR OF THE YEAR` (blue), character points up |
+| "2019 to 2023 G70 3.3T" | `2019-2023` / `GENESIS G70 3.3T` |
+| "3.3 liter twin-turbo V6 … 365" | Hood open + engine, `3.3L TWIN-TURBO V6` |
+| "around 25 grand" | logo + `$25,000` (green) |
+| Mods | Character bottom-right: `DOWNPIPES $600` → `INTAKE $350` → `TUNE` → `E30` |
+| "nearly 450 wheel horsepower" | small logo + `450HP` |
+| Driving | Rear-3/4 and front cuts, character surprised |
+| CTA | Large logo + car |

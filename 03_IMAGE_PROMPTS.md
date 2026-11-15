@@ -53,6 +53,7 @@ Paste **#1 first**. For #2 onwards, ChatGPT already knows the car, so the prompt
 | **A** | `ctsv` | gloss black | 2017 Cadillac CTS-V sedan | lowered, aggressive body kit, black wheels, red brake calipers | Cadillac LT4 6.2 litre supercharged V8 | `logo_cadillac.png` |
 | **B** | `vsport` | gloss black | 2016 Cadillac CTS V-Sport sedan | lowered, rear wing spoiler, black wheels, red brake calipers | Cadillac 3.6 litre twin-turbo V6 | `logo_cadillac.png` |
 | **C** | `arteon` | deep metallic green | 2021 Volkswagen Arteon R-Line | lowered, black wheels, red brake calipers | Volkswagen EA888 2.0 litre turbo four-cylinder | `logo_vw.png` |
+| **D** | `g70` | Havana red | 2022 Genesis G70 3.3T sedan | lowered, aggressive body kit, gloss black wheels, red brake calipers | Genesis 3.3 litre twin-turbo V6 | `logo_genesis.png` |
 | 1 | `stinger` | deep red | 2022 Kia Stinger GT | lowered, aggressive body kit, gloss black wheels, red brake calipers | Kia 3.3 litre twin-turbo V6 | `logo_kia.png` |
 | 2 | `q50` | pearl white | 2019 Infiniti Q50 Red Sport 400 | lowered, carbon lip, bronze wheels | Infiniti VR30DDTT 3.0 litre twin-turbo V6 | `logo_infiniti.png` |
 | 3 | `bmw340` | Estoril blue | 2018 BMW 340i F30 sedan | lowered, M Performance kit, black wheels | BMW B58 3.0 litre turbo inline-six | `logo_bmw.png` |
