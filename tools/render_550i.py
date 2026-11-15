@@ -91,7 +91,7 @@ def scaled(name, w, h):
     return IMG[name].resize((max(1, w), max(1, h)), Image.LANCZOS)
 
 # white flicker measured from the reference (30 fps): fade to white, white silhouette, back, white again
-SHINE_PATTERN = [0.5, 0.5, 0.7, 1.0, 0.7, 0.4, 0.0, 0.4, 0.7, 1.0, 0.7, 0.0]
+SHINE_PATTERN = [0.33] + [0.33, 0.67, 1.0, 0.67, 0.33, 0.0] * 3   # measured frame-by-frame from the reference
 
 def shine_level(t, times):
     for st in times:
@@ -362,7 +362,7 @@ def draw_char(fr, t):
 def current_word(t):
     for k, w in enumerate(WORDS):
         nxt = WORDS[k + 1]["S"] if k + 1 < len(WORDS) else w["E"] + 0.6
-        end = min(nxt, w["E"] + 0.6)
+        end = min(nxt, w["E"] + 0.12)   # clear when the voice stops (or the next word starts)
         if w["S"] <= t < end:
             return w
     return None
@@ -494,9 +494,17 @@ def build_audio(path):
     add(bm, T["hp550_end"], 0.6)
     add(wh, MOD_MODE[0], 0.18); add(wh, MOD_MODE[1], 0.18)
     add(bm, T["so"], 0.3)
-    sh = sfx_shine()
+    # the reference's own shine sound, placed on the first flash frame, at the reference's level relative to speech
+    sh, ssr = sf.read(f"{ROOT}/assets/sfx/shine_reference.wav", dtype="float32")
+    if sh.ndim > 1: sh = sh.mean(1)
+    ratio = float(open(f"{ROOT}/assets/sfx/shine_reference.txt").read().split("= ")[-1].split()[0])
+    vo_act = vo[np.abs(vo) > 0.01]
+    speech_rms = np.sqrt((vo[(np.convolve(np.abs(vo), np.ones(441) / 441, "same") > 0.02)] ** 2).mean())
+    shine_rms = np.sqrt((sh[: int(0.6 * SR)] ** 2).mean())
+    g = ratio * speech_rms / shine_rms
+    print(f"shine gain {g:.3f} (effect/speech RMS = {ratio:.3f}, as in the reference)")
     for st in SHINES:
-        add(sh, st, 0.16)
+        add(sh, st, g)
     peak = np.abs(mix).max()
     if peak > 0.98: mix *= 0.98 / peak
     sf.write(path, mix[: int(TOTAL * SR)], SR)
