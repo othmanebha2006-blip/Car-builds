@@ -50,34 +50,9 @@ IMG = {n: load(n) for n in [
 BG = Image.open(f"{P}/raw/background.png").convert("RGB").resize((W, H))
 
 # character variants: mouth 0..3 x blink
-CHAR_BASE = load("character")
-MOUTH_C, SKIN_PT = (222, 329), (222, 350)
-EYES = [(140, 208, 209, 287), (235, 208, 302, 287)]
-
-def make_char(level, blink):
-    im = CHAR_BASE.copy(); d = ImageDraw.Draw(im)
-    skin = im.getpixel(SKIN_PT)[:3]
-    if level:
-        cx, cy = MOUTH_C
-        d.ellipse((cx - 36, cy - 12, cx + 36, cy + 12), fill=skin)
-        hw, hh = [0, 20, 25, 28][level], [0, 9, 16, 24][level]
-        box = (cx - hw, cy - 6, cx + hw, cy - 6 + 2 * hh)
-        d.ellipse(box, fill=(96, 22, 26))
-        tb = (cx - hw * 0.6, box[3] - hh * 0.9, cx + hw * 0.6, box[3] + hh * 0.2)
-        mask = Image.new("L", im.size, 0); ImageDraw.Draw(mask).ellipse(box, fill=255)
-        tongue = Image.new("RGBA", im.size, (0, 0, 0, 0)); ImageDraw.Draw(tongue).ellipse(tb, fill=(232, 98, 110, 255))
-        tongue.putalpha(Image.fromarray(np.minimum(np.asarray(tongue)[..., 3], np.asarray(mask))))
-        im.alpha_composite(tongue)
-        if level >= 2:  # upper teeth
-            d.chord((cx - hw + 4, cy - 8, cx + hw - 4, cy + hh * 0.5), 180, 360, fill=(250, 250, 250))
-        d.ellipse(box, outline=(0, 0, 0), width=4)
-    if blink:
-        for (x0, y0, x1, y1) in EYES:
-            d.ellipse((x0, y0, x1, y1), fill=skin)
-            d.arc((x0 + 4, y0 + 18, x1 - 4, y1 - 18), 10, 170, fill=(0, 0, 0), width=5)
-    return im
-
-CHARS = {(l, b): make_char(l, b) for l in range(4) for b in (0, 1)}
+sys.path.insert(0, f"{ROOT}/tools")
+from char_rig import Rig, GESTURES
+RIG = Rig(f"{CUT}/character2.png")
 
 # voice energy for lip-sync (in final time)
 vo, VSR = sf.read(f"{BUILD}/vo_tight.wav", dtype="float32")
@@ -275,29 +250,82 @@ def draw_scene(fr, t):
         place(fr, arg, 540, 620, 900, 420, s)
 
 # ---------------------------------------------------------------- character
+def _phrases():
+    """group words into phrases split at pauses / sentence ends"""
+    ph, cur = [], []
+    for k, w in enumerate(WORDS):
+        cur.append(w)
+        nxt = WORDS[k + 1] if k + 1 < len(WORDS) else None
+        if nxt is None or nxt["S"] - w["E"] > 0.12 or w["w"][-1] in ".,?!":
+            ph.append((cur[0]["S"], cur[-1]["E"], " ".join(x["w"] for x in cur))); cur = []
+    return ph
+
+PHRASES = _phrases()
+CYCLE = ["open_small", "out_r", "open", "out_l", "open_small", "out_r", "rest", "out_l"]
+MOD_CYCLE = ["out_l", "open_small", "point_up", "open_small"]
+
+def _gesture_keys():
+    keys, ci = [(-1.0, "rest")], 0
+    for k, (s, e, txt) in enumerate(PHRASES):
+        low = txt.lower()
+        if k == 0 or low.startswith("now,") or low.startswith("so,"):
+            g = "point_up"
+        elif MOD_MODE[0] <= s < MOD_MODE[1]:
+            g = MOD_CYCLE[ci % len(MOD_CYCLE)]; ci += 1
+        else:
+            g = CYCLE[ci % len(CYCLE)]; ci += 1
+        keys.append((max(s - 0.18, 0.0), g))
+        nxt = PHRASES[k + 1][0] if k + 1 < len(PHRASES) else TOTAL
+        if nxt - e > 0.45:
+            keys.append((e + 0.1, "rest"))
+    keys.append((ENG_START, "rest"))
+    return sorted(keys)
+
+GKEYS = _gesture_keys()
+# head tilt targets: change every couple of phrases, small angles
+TILTS = [(0.0, 0.0)] + [(PHRASES[k][0] - 0.2, [2.2, -1.6, 0.0, -2.4, 1.4, 0.0][(k // 2) % 6]) for k in range(0, len(PHRASES), 2)]
+
+def _interp(keys, t, dur, getter):
+    prev = getter(keys[0][1]); cur = prev
+    for kt, val in keys:
+        if kt > t: break
+        x = ease_io((t - kt) / dur)
+        tgt = getter(val)
+        cur = tuple(p + (q - p) * x for p, q in zip(prev, tgt)) if isinstance(tgt, tuple) else prev + (tgt - prev) * x
+        prev = cur
+    return cur
+
+def char_state(t):
+    # walk the keyframes so each transition starts from wherever the previous one was
+    pose = (0.0, 0.0)
+    for kt, g in GKEYS:
+        if kt > t: break
+        tgt = GESTURES[g]; x = ease_io((t - kt) / 0.32)
+        pose = (pose[0] + (tgt[0] - pose[0]) * x, pose[1] + (tgt[1] - pose[1]) * x) if x < 1 else tgt
+    tilt = 0.0
+    for kt, a in TILTS:
+        if kt > t: break
+        x = ease_io((t - kt) / 0.7); tilt = tilt + (a - tilt) * x if x < 1 else a
+    return pose, tilt
+
 def draw_char(fr, t):
     lvl = mouth_level(t)
     blink = (t % 3.7) < 0.12 or (t % 11.3) < 0.1
-    im = CHARS[(lvl, int(blink))]
+    (la, ra), tilt = char_state(t)
+    talking = 1.0 if lvl > 0 else 0.0
+    # hands keep moving a little while he talks (explaining motion)
+    la += talking * 6 * math.sin(t * 2 * math.pi * 0.9)
+    ra += talking * 6 * math.sin(t * 2 * math.pi * 0.9 + 1.7)
+    tilt += 0.6 * math.sin(t * 1.1)
+    im = RIG.pose(la, ra, tilt, lvl, blink)
     # normal vs. corner mode (during mods)
     a = ease_io((t - MOD_MODE[0]) / 0.35) - ease_io((t - MOD_MODE[1]) / 0.35)
     scale = (920 / im.height) * (1 - a) + (780 / im.height) * a
     cx = 540 * (1 - a) + 850 * a
     feet = 1905
-    talk = lvl > 0
-    bob = math.sin(t * 2 * math.pi * 2.2) * (7 if talk else 3)
-    sway = math.sin(t * 1.3) * 1.6
-    sq = 1 + (0.018 * lvl / 3)
-    jump = 0
-    for jt in (ENG_START, T["hp550_end"], T["crazy"]):
-        if 0 <= t - jt < 0.45:
-            x = (t - jt) / 0.45; jump = -110 * 4 * x * (1 - x)
-    sx = sy = 0
-    if ENG_START < t < ENG_START + ENG_DUR:
-        sx, sy = shake(t, 5, 3)
-    w, h = int(im.width * scale), int(im.height * scale * sq)
-    c = im.resize((w, h), Image.BILINEAR).rotate(sway, resample=Image.BICUBIC, expand=True)
-    fr.alpha_composite(c, (int(cx - c.width / 2 + sx), int(feet - c.height + bob * 0.4 + jump + sy)))
+    w, h = int(im.width * scale), int(im.height * scale)
+    c = im.resize((w, h), Image.LANCZOS)
+    fr.alpha_composite(c, (int(cx - w / 2), int(feet - h)))
 
 # ---------------------------------------------------------------- captions
 def current_word(t):
