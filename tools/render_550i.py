@@ -51,8 +51,8 @@ BG = Image.open(f"{P}/raw/background.png").convert("RGB").resize((W, H))
 
 # character variants: mouth 0..3 x blink
 sys.path.insert(0, f"{ROOT}/tools")
-from char_rig import Rig, GESTURES
-RIG = Rig(f"{CUT}/character2.png")
+from char_rig import Rig, CFG3
+RIG = Rig(f"{CUT}/character3.png", CFG3)
 
 # voice energy for lip-sync (in final time)
 vo, VSR = sf.read(f"{BUILD}/vo_tight.wav", dtype="float32")
@@ -250,74 +250,73 @@ def draw_scene(fr, t):
         place(fr, arg, 540, 620, 900, 420, s)
 
 # ---------------------------------------------------------------- character
-def _phrases():
-    """group words into phrases split at pauses / sentence ends"""
-    ph, cur = [], []
-    for k, w in enumerate(WORDS):
-        cur.append(w)
-        nxt = WORDS[k + 1] if k + 1 < len(WORDS) else None
-        if nxt is None or nxt["S"] - w["E"] > 0.12 or w["w"][-1] in ".,?!":
-            ph.append((cur[0]["S"], cur[-1]["E"], " ".join(x["w"] for x in cur))); cur = []
-    return ph
+GEST = {"rest": (0, 0), "open": (-30, -30), "open_small": (-16, -16), "out_r": (-4, -42), "out_l": (-42, -4),
+        "raise_r": (0, -125), "present_r": (0, -95), "present_l": (-95, 0)}
 
-PHRASES = _phrases()
-CYCLE = ["open_small", "out_r", "open", "out_l", "open_small", "out_r", "rest", "out_l"]
-MOD_CYCLE = ["out_l", "open_small", "point_up", "open_small"]
+def _ev(word, n=1, dt=0.0):
+    return at(word, n) + dt
 
-def _gesture_keys():
-    keys, ci = [(-1.0, "rest")], 0
-    for k, (s, e, txt) in enumerate(PHRASES):
-        low = txt.lower()
-        if k == 0 or low.startswith("now,") or low.startswith("so,"):
-            g = "point_up"
-        elif MOD_MODE[0] <= s < MOD_MODE[1]:
-            g = MOD_CYCLE[ci % len(MOD_CYCLE)]; ci += 1
-        else:
-            g = CYCLE[ci % len(CYCLE)]; ci += 1
-        keys.append((max(s - 0.18, 0.0), g))
-        nxt = PHRASES[k + 1][0] if k + 1 < len(PHRASES) else TOTAL
-        if nxt - e > 0.45:
-            keys.append((e + 0.1, "rest"))
-    keys.append((ENG_START, "rest"))
-    return sorted(keys)
+# gestures on meaningful words: (start, gesture, hold seconds) -> then back to rest
+GEST_EVENTS = [
+    (_ev("want") - 0.15, "raise_r", 1.6),
+    (_ev("hidden") - 0.1, "open_small", 1.3),
+    (_ev("foundation") - 0.1, "present_r", 1.8),
+    (_ev("overlook") - 0.15, "open", 1.3),
+    (_ev("fraction") - 0.15, "out_l", 1.4),
+    (_ev("445") - 0.15, "raise_r", 1.6),
+    (_ev("serious") - 0.1, "out_r", 1.2),
+    (_ev("crazy") - 0.3, "open", 1.2),
+    (T["down"] - 0.1, "present_l", 1.0), (T["intake"] - 0.1, "present_l", 1.0),
+    (T["cooling"] - 0.1, "present_l", 1.0), (T["ecu"] - 0.1, "present_l", 1.0),
+    (_ev("Around") - 0.15, "raise_r", T["hp550_end"] - _ev("Around") + 0.5),
+    (_ev("Suddenly") - 0.1, "open", 1.3),
+    (_ev("twice") - 0.2, "out_r", 1.2),
+    (_ev("basically") - 0.1, "open_small", 1.4),
+    (_ev("build") - 0.15, "present_r", 1.3),
+    (_ev("spend") - 0.15, "present_l", TOTAL),
+]
+# facial expression changes
+EXPR_EVENTS = [(0.0, "curious"), (_ev("underrated"), "happy"), (ENG_START, "surprised"), (ENG_START + 2.2, "happy"),
+               (_ev("foundation"), "neutral"), (_ev("obsessed"), "serious"), (_ev("fraction"), "happy"),
+               (_ev("4.4"), "neutral"), (_ev("445"), "surprised"), (_ev("straight"), "happy"), (_ev("Now"), "surprised"),
+               (T["start"], "serious"), (T["result"], "curious"), (_ev("Around"), "surprised"), (_ev("Suddenly"), "happy"),
+               (_ev("So"), "curious")]
+# head: small nods on emphasis words, gentle tilt on questions
+NODS = [_ev(w) for w in ("underrated", "550i", "445", "crazy", "ECU", "machine", "twice")] + [T["hp550_end"] - 0.1]
+TILT_EVENTS = [(0.0, 2.5, 2.4), (T["result"] - 0.1, -2.0, 1.2), (_ev("So") - 0.1, 2.5, TOTAL)]  # (start, angle, hold)
 
-GKEYS = _gesture_keys()
-# head tilt targets: change every couple of phrases, small angles
-TILTS = [(0.0, 0.0)] + [(PHRASES[k][0] - 0.2, [2.2, -1.6, 0.0, -2.4, 1.4, 0.0][(k // 2) % 6]) for k in range(0, len(PHRASES), 2)]
-
-def _interp(keys, t, dur, getter):
-    prev = getter(keys[0][1]); cur = prev
-    for kt, val in keys:
-        if kt > t: break
-        x = ease_io((t - kt) / dur)
-        tgt = getter(val)
-        cur = tuple(p + (q - p) * x for p, q in zip(prev, tgt)) if isinstance(tgt, tuple) else prev + (tgt - prev) * x
-        prev = cur
-    return cur
+def _blend(events, t, dur=0.3):
+    """events: (start, value, hold); returns eased pose (left,right) going back to rest after hold"""
+    pose = (0.0, 0.0)
+    for st, g, hold in events:
+        if st > t: break
+        tgt = GEST[g]
+        x_in = ease_io((t - st) / dur)
+        x_out = ease_io((t - st - hold) / dur)
+        cur = tuple(p + (q - p) * x_in for p, q in zip(pose, tgt))
+        pose = tuple(c * (1 - x_out) for c in cur)
+    return pose
 
 def char_state(t):
-    # walk the keyframes so each transition starts from wherever the previous one was
-    pose = (0.0, 0.0)
-    for kt, g in GKEYS:
-        if kt > t: break
-        tgt = GESTURES[g]; x = ease_io((t - kt) / 0.32)
-        pose = (pose[0] + (tgt[0] - pose[0]) * x, pose[1] + (tgt[1] - pose[1]) * x) if x < 1 else tgt
+    la, ra = _blend(GEST_EVENTS, t)
     tilt = 0.0
-    for kt, a in TILTS:
-        if kt > t: break
-        x = ease_io((t - kt) / 0.7); tilt = tilt + (a - tilt) * x if x < 1 else a
-    return pose, tilt
+    for st, ang, hold in TILT_EVENTS:
+        if st > t: break
+        tilt = ang * (ease_io((t - st) / 0.5) - ease_io((t - st - hold) / 0.5))
+    dy = 0.0
+    for nt in NODS:
+        x = (t - nt) / 0.42
+        if 0 <= x <= 1: dy = 6 * math.sin(math.pi * x)
+    expr = "neutral"
+    for st, e in EXPR_EVENTS:
+        if st <= t: expr = e
+    return (la, ra), tilt, dy, expr
 
 def draw_char(fr, t):
     lvl = mouth_level(t)
     blink = (t % 3.7) < 0.12 or (t % 11.3) < 0.1
-    (la, ra), tilt = char_state(t)
-    talking = 1.0 if lvl > 0 else 0.0
-    # hands keep moving a little while he talks (explaining motion)
-    la += talking * 6 * math.sin(t * 2 * math.pi * 0.9)
-    ra += talking * 6 * math.sin(t * 2 * math.pi * 0.9 + 1.7)
-    tilt += 0.6 * math.sin(t * 1.1)
-    im = RIG.pose(la, ra, tilt, lvl, blink)
+    (la, ra), tilt, dy, expr = char_state(t)
+    im = RIG.pose(la, ra, tilt, lvl, blink, expr, dy)
     # normal vs. corner mode (during mods)
     a = ease_io((t - MOD_MODE[0]) / 0.35) - ease_io((t - MOD_MODE[1]) / 0.35)
     scale = (920 / im.height) * (1 - a) + (780 / im.height) * a

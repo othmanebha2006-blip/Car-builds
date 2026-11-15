@@ -20,11 +20,29 @@ CFG = dict(
            pivot=(447, 628), ext_row=668, ext_top=618, xr=(390, 512)),
 )
 
+CFG3 = dict(
+    head_cut=382, head_overlap=10, head_pivot=(229, 388),
+    mouth=(229, 326), mouth_clear=(194, 313, 264, 338), skin_pt=(230, 356),
+    eyes=[(181, 247), (273, 247)], eye_r=(34, 38), lens_r=None, lens_pt=None,
+    brows=[(164, 162, 206, 190), (250, 162, 296, 190)],
+    L=dict(fore=[(0, 614), (112, 614), (112, 700), (110, 700), (110, 780), (105, 780), (105, 860), (100, 860), (100, 900), (0, 900)],
+           cuff=[(0, 520), (126, 520), (126, 618), (0, 618)], pivot=(66, 586), ext_row=630, ext_top=590, xr=(18, 112)),
+    R=dict(fore=[(336, 614), (458, 614), (458, 900), (360, 900), (360, 860), (349, 860), (349, 780), (345, 780), (345, 700), (336, 700)],
+           cuff=[(332, 520), (458, 520), (458, 618), (332, 618)], pivot=(392, 586), ext_row=630, ext_top=590, xr=(342, 442)),
+    cuff_rule=lambda r: (r.min(-1) > 46) & (r.max(-1) < 80) & (r.max(-1) - r.min(-1) < 14),
+    elbow_r=40,
+)
+
+# eyebrow offsets per expression: (dy_left, rot_left, dy_right, rot_right); + rot = counter-clockwise
+EXPR = {"neutral": (0, 0, 0, 0), "happy": (-2, 0, -2, 0), "surprised": (-6, 0, -6, 0),
+        "serious": (2, -12, 2, 12), "curious": (-6, 6, 1, 0)}
+
 def _poly_mask(size, poly):
     m = Image.new("L", size, 0); ImageDraw.Draw(m).polygon(poly, fill=255); return m
 
 class Rig:
-    def __init__(self, path, cfg=CFG):
+    def __init__(self, path, cfg=None):
+        cfg = cfg or CFG
         self.c = cfg
         src = Image.open(path).convert("RGBA")
         self.w, self.h = src.size
@@ -56,15 +74,19 @@ class Rig:
             # only the light-blue cuff band (+ its outline), not the sleeve above it
             from scipy import ndimage
             rgb = np.asarray(canvas)[..., :3].astype(int)
-            light = (rgb[..., 2] > 150) & (rgb[..., 0] > 95) & (rgb[..., 2] - rgb[..., 0] > 25)
+            light = cfg.get("cuff_rule", lambda r: (r[..., 2] > 150) & (r[..., 0] > 95) & (r[..., 2] - r[..., 0] > 25))(rgb)
             band = ndimage.binary_dilation(light & (np.asarray(cmask) > 0), iterations=9) & (np.asarray(cmask) > 0)
             cmask = Image.fromarray((band * 255).astype(np.uint8))
             cuff = Image.new("RGBA", cw, (0, 0, 0, 0)); cuff.paste(canvas, (0, 0), cmask)
-            # erase the original forearm from the base
-            b = np.array(base); m = np.array(fmask) > 0; b[m] = 0; base = Image.fromarray(b)
+            # erase the original forearm from the base, plus the strip just under the cuff (the cuff is redrawn on top)
+            b = np.array(base); m = np.array(fmask) > 0
+            strip = np.zeros_like(m); xs0, xs1 = a["xr"][0] + PAD - 4, a["xr"][1] + PAD + 2
+            strip[a["ext_top"]:a["ext_row"] + 12, xs0:xs1] = True
+            m |= strip & ~(np.asarray(cmask) > 0)
+            b[m] = 0; base = Image.fromarray(b)
             px, py = a["pivot"]
             # rounded elbow cap drawn under the forearm so the joint never shows a square edge
-            r = 44
+            r = cfg.get("elbow_r", 44)
             ex = px + PAD
             skin = src.getpixel((ex - PAD, a["ext_row"] + 10))[:3]
             elbow = Image.new("RGBA", cw, (0, 0, 0, 0))
@@ -79,14 +101,37 @@ class Rig:
         self.head_base = Image.fromarray(head_src)
         self.head_pivot = (cfg["head_pivot"][0] + PAD, cfg["head_pivot"][1])
         self.skin = src.getpixel(cfg["skin_pt"])[:3]
-        self.lens = src.getpixel(cfg["lens_pt"])[:3]
+        self.lens = src.getpixel(cfg["lens_pt"])[:3] if cfg.get("lens_pt") else None
         self._heads = {}
 
-    def head(self, level, blink):
-        k = (level, blink)
+    def head(self, level, blink, expr="neutral"):
+        k = (level, blink, expr)
         if k in self._heads: return self._heads[k]
         im = self.head_base.copy(); d = ImageDraw.Draw(im); c = self.c
         cx, cy = c["mouth"][0] + PAD, c["mouth"][1]
+        if c.get("brows"):
+            arr = np.array(im)
+            sprites = []
+            for (x0, y0, x1, y1) in c["brows"]:
+                box = (x0 + PAD, y0, x1 + PAD, y1)
+                reg = arr[y0:y1, box[0]:box[2]]
+                dark = (reg[..., :3].max(-1) < 90) & (reg[..., 3] > 0)
+                spr = np.zeros_like(reg); spr[dark] = reg[dark]
+                sprites.append((box, Image.fromarray(spr)))
+                reg[dark] = list(self.skin) + [255]
+            im = Image.fromarray(arr); d = ImageDraw.Draw(im)
+            dyl, rl, dyr, rr = EXPR.get(expr, EXPR["neutral"])
+            for (box, spr), dy, rot in zip(sprites, (dyl, dyr), (rl, rr)):
+                spr = spr.rotate(rot, resample=Image.BICUBIC, expand=False)
+                im.alpha_composite(spr, (box[0], box[1] + dy))
+            d = ImageDraw.Draw(im)
+        if not level and expr in ("surprised", "serious"):
+            x0, y0, x1, y1 = c["mouth_clear"]
+            d.ellipse((x0 + PAD, y0, x1 + PAD, y1), fill=self.skin)
+            if expr == "surprised":
+                d.ellipse((cx - 11, cy - 10, cx + 11, cy + 14), fill=(96, 22, 26), outline=(0, 0, 0), width=4)
+            else:
+                d.line((cx - 22, cy + 2, cx + 22, cy + 2), fill=(0, 0, 0), width=5)
         if level:
             x0, y0, x1, y1 = c["mouth_clear"]
             d.ellipse((x0 + PAD, y0, x1 + PAD, y1), fill=self.skin)
@@ -102,15 +147,19 @@ class Rig:
                 d.chord((cx - hw + 5, cy - 10, cx + hw - 5, cy + hh * 0.45), 180, 360, fill=(250, 250, 250))
             d.ellipse(box, outline=(0, 0, 0), width=4)
         if blink:
-            r = c["lens_r"]
             for ex, ey in c["eyes"]:
                 ex += PAD
-                d.ellipse((ex - r, ey - r, ex + r, ey + r), fill=self.lens)
-                d.arc((ex - r + 6, ey - 12, ex + r - 6, ey + 10), 15, 165, fill=(0, 0, 0), width=5)
+                if c.get("lens_r"):
+                    r = c["lens_r"]; d.ellipse((ex - r, ey - r, ex + r, ey + r), fill=self.lens)
+                    d.arc((ex - r + 6, ey - 12, ex + r - 6, ey + 10), 15, 165, fill=(0, 0, 0), width=5)
+                else:
+                    rx, ry = c["eye_r"]
+                    d.ellipse((ex - rx - 2, ey - ry - 2, ex + rx + 2, ey + ry + 2), fill=self.skin)
+                    d.arc((ex - rx, ey - 16, ex + rx, ey + 14), 10, 170, fill=(0, 0, 0), width=6)
         self._heads[k] = im
         return im
 
-    def pose(self, left=0.0, right=0.0, tilt=0.0, mouth=0, blink=False):
+    def pose(self, left=0.0, right=0.0, tilt=0.0, mouth=0, blink=False, expr="neutral", head_dy=0):
         """left/right: forearm angles in degrees (+ = hand moves toward the body's centre line for both arms)."""
         out = self.base.copy()
         for side, ang in (("L", left), ("R", -right)):
@@ -118,8 +167,9 @@ class Rig:
             if abs(ang) > 70: out.alpha_composite(elbow)
             out.alpha_composite(fore.rotate(ang, resample=Image.BICUBIC, center=piv) if abs(ang) > 0.05 else fore)
             out.alpha_composite(cuff)
-        h = self.head(mouth, blink)
-        out.alpha_composite(h.rotate(tilt, resample=Image.BICUBIC, center=self.head_pivot) if abs(tilt) > 0.05 else h)
+        h = self.head(mouth, blink, expr)
+        h = h.rotate(tilt, resample=Image.BICUBIC, center=self.head_pivot) if abs(tilt) > 0.05 else h
+        out.alpha_composite(h, (0, int(round(head_dy))))
         return out
 
 GESTURES = {  # (left, right) forearm angles; + = toward the body centre
