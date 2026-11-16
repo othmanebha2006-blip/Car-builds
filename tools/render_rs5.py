@@ -416,7 +416,7 @@ def draw_char(fr, t):
     dx, dy, tilt, brow, blink = head_state(t)
     im = RIG.pose(arm_pose(t), mouth_shape(t), blink, brow, head_dx=dx, head_dy=dy, tilt=tilt, sway=0.25 * dx)
     a = ease_io((t - MOD_MODE[0]) / 0.35) - ease_io((t - MOD_MODE[1]) / 0.35)
-    scale = (920 / im.height) * (1 - a) + (760 / im.height) * a
+    scale = (920 / RIG.h) * (1 - a) + (760 / RIG.h) * a      # by the character's own height (canvas has padding)
     cx = 540 * (1 - a) + 800 * a
     feet = 1905
     w, h = int(im.width * scale), int(im.height * scale)
@@ -487,8 +487,7 @@ def sfx_boom():
     n = int(1.1 * SR); t = np.arange(n) / SR
     f = 95 * np.exp(-t * 5) + 42
     y = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 3.2)
-    y += 0.6 * lp(rng.standard_normal(n), 900) * np.exp(-t * 18)
-    return y / np.abs(y).max()
+    return y / np.abs(y).max()          # pure tone (no noise layer)
 
 def sfx_riser(d):
     n = int(d * SR); t = np.arange(n) / SR
@@ -539,26 +538,18 @@ def build_audio(path):
     eng = eng[: int(ENG_DUR * SR)]
     eng = eng / np.abs(eng).max() * 0.9 * env(len(eng), 0.04, 0.4)
     add(eng, ENG_START, 1.0)
-    for k in range(1, 4):
-        add(sfx_whoosh(), ENG_START + k * ENG_DUR / 4 - 0.1, 0.10)
 
     wh, pp, ck, bm, dg = sfx_whoosh(), sfx_pop(), sfx_click(), sfx_boom(), sfx_ding()
-    for st, kind, _ in SCENES[1:]:
-        if kind != "engine":
-            add(wh, st - 0.12, 0.16)
     for tt in (T["years"], T["hp444"], T["lb443"], T["forty"], T["quattro"], T["changing"]):
         add(pp, tt, 0.28)
     for (mt, _, _) in MODS:
-        add(pp, mt, 0.32); add(wh, mt - 0.1, 0.14)
+        add(pp, mt, 0.32); 
     for t0, txt, cps in ((T["years"], "2018-2020", 14), (T["years"] + 0.45, "AUDI RS5 B9", 22), (T["liter"], "2.9L TWIN-TURBO V6", 24)):
         for c in range(len(txt)):
             add(ck, t0 + c / cps, 0.10 * random.uniform(0.7, 1.0))
     add(dg, T["forty"] + 0.05, 0.22)
-    rd = 1.6; add(sfx_riser(rd), T["crazy"] + 0.25 - rd, 0.16)
     add(bm, T["crazy"] + 0.25, 0.55)
-    add(sfx_riser(T["hp_end"] - T["around"]), T["around"], 0.10)
     add(bm, T["hp_end"], 0.6)
-    add(wh, MOD_MODE[0], 0.18); add(wh, MOD_MODE[1], 0.18)
     add(bm, T["so"], 0.3)
     # the reference's own shine sound, placed on the first flash frame, at the reference's level relative to speech
     sh, ssr = sf.read(f"{ROOT}/assets/sfx/shine_reference.wav", dtype="float32")

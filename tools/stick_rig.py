@@ -10,11 +10,11 @@ from PIL import Image, ImageDraw
 from scipy import ndimage
 
 PAD = 330            # side padding so raised arms stay on the canvas
+TOP = 90             # top padding: head tilt / body lean must never push the hat off the canvas
 SS = 2               # supersampling for strokes
 
 CFG = dict(
-    stroke=20, skin=(253, 207, 164), black=(0, 0, 0),
-    head_cut=548, head_pivot=(316, 548), legs_top=958,
+    stroke=20, outline=17, skin=(253, 207, 164), black=(0, 0, 0),
     mouth_c=(325, 452), mouth_clear=(232, 424, 418, 482), smile_box=(238, 428, 412, 478),
     eyes=[(262, 360), (365, 360)], eye_r=(17, 23),
     brows=[(230, 276, 308, 318), (339, 276, 418, 318)],
@@ -23,6 +23,8 @@ CFG = dict(
           "R": dict(A=(442, 580), W=(573, 845), erase=[(632, 652), (473, 652), (480, 690), (487, 720), (492, 760), (504, 790),
                                                       (526, 800), (526, 860), (532, 900), (527, 965), (632, 965)])},
     wrist_cut=842,
+    lean_radius=600,     # head drift (px) is produced by leaning the whole upper body about the hips
+    leg_overlap=50,      # legs extend this far up under the shirt so the waist never opens
 )
 
 def _poly_mask(size, poly):
@@ -33,46 +35,100 @@ def _rot(v, deg):
     t = math.radians(deg); c, s = math.cos(t), math.sin(t)
     return (v[0] * c + v[1] * s, -v[0] * s + v[1] * c)
 
+def _largest(mask):
+    lab, n = ndimage.label(mask)
+    if not n: return mask
+    return lab == 1 + int(np.argmax(ndimage.sum(mask, lab, range(1, n + 1))))
+
 class StickRig:
+    """Layers are cut along the character's own outlines (not along straight rows):
+       legs (extended up under the shirt) < torso (shirt + its own outline) < arms (strokes + original hands) < head.
+       Torso, arms and head form one rigid upper body that leans about the hips; the head only adds a small tilt/nod
+       about the chin on top of that, so neck and shoulders never separate."""
     def __init__(self, path, cfg=CFG):
         self.c = cfg
         src = Image.open(path).convert("RGBA")
         self.w, self.h = src.size
-        cv = Image.new("RGBA", (self.w + 2 * PAD, self.h), (0, 0, 0, 0)); cv.paste(src, (PAD, 0))
+        cv = Image.new("RGBA", (self.w + 2 * PAD, self.h + TOP), (0, 0, 0, 0)); cv.paste(src, (PAD, TOP))
         A = np.array(cv); size = cv.size
-        P = lambda pts: [(x + PAD, y) for x, y in pts]
-        self.P = lambda p: (p[0] + PAD, p[1])
-        self.hands = {}
+        alpha = A[..., 3] > 0; rgb = A[..., :3].astype(int)
+        Y = np.arange(size[1])[:, None] * np.ones((1, size[0]), int)
+        P = lambda pts: [(x + PAD, y + TOP) for x, y in pts]
+        self.P = lambda p: (p[0] + PAD, p[1] + TOP)
+        ow = cfg["outline"]
+        dark = (rgb.max(-1) < 90) & alpha
+
+        # hands: original drawings below the wrist (unchanged)
+        self.hands = {}; hand_any = np.zeros_like(alpha)
         for side, g in cfg["arms"].items():
-            m = _poly_mask(size, P(g["erase"])) & (A[..., 3] > 0)
-            hand = np.zeros_like(A); hm = m.copy(); hm[: cfg["wrist_cut"]] = False
-            hand[hm] = A[hm]
-            # feather the wrist edge so the stroke and the hand join smoothly
+            m = _poly_mask(size, P(g["erase"])) & alpha & (Y >= cfg["wrist_cut"] + TOP)
+            hand = np.zeros_like(A); hand[m] = A[m]
             for k in range(6):
-                r = hand[cfg["wrist_cut"] + k]; r[..., 3] = (r[..., 3] * (k + 1) / 7).astype(np.uint8)
-            self.hands[side] = Image.fromarray(hand)
-            A[m] = 0
-        # split: head / torso(+arms stubs) / legs
-        hc = cfg["head_cut"]; lt = cfg["legs_top"]
-        head = A.copy(); head[hc + 6:] = 0
-        body = A.copy(); body[: hc - 2] = 0; body[lt + 4:] = 0
-        legs = A.copy(); legs[: lt] = 0
-        self.legs, self.body = Image.fromarray(legs), Image.fromarray(body)
+                r = hand[cfg["wrist_cut"] + TOP + k]; r[..., 3] = (r[..., 3] * (k + 1) / 7).astype(np.uint8)
+            self.hands[side] = Image.fromarray(hand); hand_any |= m
+
+        # head: face skin + beanie (+ text, eyes, mouth inside), plus its own outline ring
+        skin_c = np.array(cfg["skin"])
+        skin = (np.abs(rgb - skin_c).sum(-1) < 60) & alpha
+        cx, cy = self.P(cfg["mouth_c"])
+        lab, _ = ndimage.label(skin); face = lab == lab[cy - 60, cx]
+        grey = (np.abs(rgb[..., 0] - rgb[..., 1]) < 14) & (np.abs(rgb[..., 1] - rgb[..., 2]) < 14) & (rgb.max(-1) > 70) & (rgb.max(-1) < 200) & alpha
+        beanie = _largest(grey & (Y < TOP + 360))
+        hat = alpha & (Y < TOP + cfg.get("hat_bottom", 330))          # everything this high is the beanie
+        head_fill = ndimage.binary_fill_holes(ndimage.binary_closing(face | beanie | hat, iterations=6))
+        head_fill = ndimage.binary_fill_holes(head_fill | (ndimage.binary_dilation(head_fill, iterations=ow + 2) & dark & (Y < TOP + 360)))
+        d_head = ndimage.distance_transform_edt(~head_fill)
+        head_m = (head_fill | (dark & (d_head <= ow + 3))) & alpha
+
+        # torso: shirt fill (logo included) + original outline pixels in its band + regenerated ring where the
+        # original outline was shared with the arms or hidden under the head
+        red = _largest((rgb[..., 0] > 170) & (rgb[..., 1] < 110) & (rgb[..., 2] < 110) & alpha)
+        torso_fill = ndimage.binary_fill_holes(ndimage.binary_closing(red, iterations=4))
+        d_t = ndimage.distance_transform_edt(~torso_fill)
+        band = (d_t > 0) & (d_t <= ow + 1)
+        torso = np.zeros_like(A)
+        torso[torso_fill] = A[torso_fill]
+        keep = band & dark & ~head_m
+        # the shirt's bottom edge is drawn thicker (~20 px) and anti-aliased: its whole outline belongs to the shirt
+        tb = int(np.flatnonzero(torso_fill.any(1))[-1])
+        hem = (d_t > 0) & (d_t <= ow + 7) & alpha & (Y > tb - 70) & ~head_m
+        keep |= hem
+        torso[keep] = A[keep]
+        ring_a = np.clip(ow + 0.5 - d_t, 0, 1) * (d_t > 0)
+        ring = (ring_a > 0) & ~keep
+        torso[ring, :3] = 0
+        torso[ring, 3] = np.maximum(torso[ring, 3], (ring_a[ring] * 255).astype(np.uint8))
+        self.torso_bottom = int(np.flatnonzero(torso_fill.any(1))[-1])
+
+        # legs: everything left below the shirt (strokes + shoes), extended upward under the shirt
+        legs_m = alpha & ~head_m & ~torso_fill & ~keep & ~(d_t <= ow + 1) & ~hand_any & (Y > self.torso_bottom - 40)
+        legs = np.zeros_like(A); legs[legs_m] = A[legs_m]
+        for x in np.flatnonzero(legs_m.any(0)):
+            y0 = int(np.flatnonzero(legs_m[:, x])[0])
+            if y0 > self.torso_bottom + 30: continue            # only columns that touch the shirt
+            lo = max(0, y0 - cfg["leg_overlap"])
+            legs[lo:y0, x] = legs[y0 + 2, x]
+        self.legs = Image.fromarray(legs)
+        self.body = Image.fromarray(torso)
+        self.hip_pivot = (PAD + self.w / 2, self.torso_bottom - 10)
+
         # face parts: brows as sprites, eyes/mouth areas cleaned to skin
-        skin = cfg["skin"]
+        head = np.zeros_like(A); head[head_m] = A[head_m]
+        skin_t = tuple(cfg["skin"])
         self.brows = []
         for (x0, y0, x1, y1) in cfg["brows"]:
-            reg = head[y0:y1, x0 + PAD:x1 + PAD]
-            dark = (reg[..., :3].max(-1) < 120) & (reg[..., 3] > 0)
-            ink = (reg[..., :3].astype(int).sum(-1) < sum(skin) - 25) & (reg[..., 3] > 0)   # brow + its anti-aliased edge
+            reg = head[y0 + TOP:y1 + TOP, x0 + PAD:x1 + PAD]
+            ink = (reg[..., :3].astype(int).sum(-1) < sum(skin_t) - 25) & (reg[..., 3] > 0)
             spr = np.zeros_like(reg); spr[ink] = reg[ink]
-            self.brows.append(((x0 + PAD, y0), Image.fromarray(spr)))
-            reg[ndimage.binary_dilation(ink, iterations=3) & (reg[..., 3] > 0)] = skin + (255,)
+            self.brows.append(((x0 + PAD, y0 + TOP), Image.fromarray(spr)))
+            reg[ndimage.binary_dilation(ink, iterations=3) & (reg[..., 3] > 0)] = skin_t + (255,)
         x0, y0, x1, y1 = cfg["smile_box"]
-        self.smile = Image.fromarray(head[y0:y1, x0 + PAD:x1 + PAD].copy())
-        reg = head[y0:y1, x0 + PAD:x1 + PAD]; reg[reg[..., 3] > 0] = skin + (255,)
+        self.smile = Image.fromarray(head[y0 + TOP:y1 + TOP, x0 + PAD:x1 + PAD].copy())
+        reg = head[y0 + TOP:y1 + TOP, x0 + PAD:x1 + PAD]; reg[reg[..., 3] > 0] = skin_t + (255,)
         self.head = Image.fromarray(head)
-        self.head_pivot = self.P(cfg["head_pivot"])
+        hb = int(np.flatnonzero(head_fill[:, int(cx)])[-1])
+        self.head_pivot = (cx, hb - 15)                      # chin: head tilts/nods about the neck
+        self.masks = dict(head=head_m, torso=torso_fill, legs=legs_m, hands=hand_any, alpha=alpha)
         self._face_cache = {}
 
     # ------------------------------------------------------------------ face
@@ -117,7 +173,7 @@ class StickRig:
         if key in self._face_cache: return self._face_cache[key]
         im = self.head.copy(); d = ImageDraw.Draw(im)
         if viseme == 1:
-            x0, y0, _, _ = self.c["smile_box"]; im.alpha_composite(self.smile, (x0 + PAD, y0))
+            x0, y0, _, _ = self.c["smile_box"]; im.alpha_composite(self.smile, (x0 + PAD, y0 + TOP))
         else:
             m = Image.new("RGBA", (im.width * SS, im.height * SS), (0, 0, 0, 0))
             # draw mouth supersampled in a local patch for clean edges
@@ -139,7 +195,7 @@ class StickRig:
             im.alpha_composite(patch, (int(cx - 100), int(cy - 50)))
         if blink:
             for ex, ey in self.c["eyes"]:
-                ex += PAD; rx, ry = self.c["eye_r"]
+                ex += PAD; ey += TOP; rx, ry = self.c["eye_r"]
                 d.ellipse((ex - rx - 6, ey - ry - 6, ex + rx + 6, ey + ry + 6), fill=self.c["skin"])
                 d.arc((ex - rx - 4, ey - 8, ex + rx + 4, ey + 14), 200, 340, fill=(0, 0, 0), width=8)
         for (pos, spr) in self.brows:
@@ -182,23 +238,26 @@ class StickRig:
         # hand: rotate about the original wrist, then move the wrist to its new place
         hand = self.hands[side]
         if abs(hr) > 0.05:
-            hand = hand.rotate(hr, resample=Image.BICUBIC, center=W)
+            hand = hand.rotate(hr, resample=Image.BILINEAR, center=W)   # bilinear: no ringing specks
         layer.alpha_composite(hand, (int(round(W2[0] - W[0])), int(round(W2[1] - W[1]))))
 
     # ------------------------------------------------------------------ pose
     def pose(self, arms=None, viseme=1, blink=False, brow=0.0, head_dx=0.0, head_dy=0.0, tilt=0.0, sway=0.0):
-        """arms: dict side -> (out, bend). Returns an RGBA canvas (w + 2*PAD wide)."""
+        """arms: dict side -> (out, bend). head_dx: sideways drift of the head in px, produced by leaning the whole
+        upper body (torso + arms + head) about the hips; head_dy / tilt: nod and tilt about the chin. 'sway' is kept
+        for API compatibility (the torso already follows the lean). Returns an RGBA canvas (w + 2*PAD, h + TOP)."""
         arms = arms or {"L": (0, 0), "R": (0, 0)}
-        out = self.legs.copy()
         upper = self.body.copy()
         for side in ("L", "R"):
             self.draw_arm(upper, side, *arms[side])
         h = self.face(viseme, blink, brow)
-        if abs(tilt) > 0.05: h = h.rotate(tilt, resample=Image.BICUBIC, center=self.head_pivot)
-        upper_full = Image.new("RGBA", upper.size, (0, 0, 0, 0))
-        upper_full.alpha_composite(upper)
-        upper_full.alpha_composite(h, (int(round(head_dx)), int(round(head_dy))))
-        out.alpha_composite(upper_full, (int(round(sway)), 0))
+        if abs(tilt) > 0.05: h = h.rotate(tilt, resample=Image.BILINEAR, center=self.head_pivot)
+        upper.alpha_composite(h, (0, int(round(head_dy))))
+        lean = -math.degrees(math.atan2(head_dx, self.c["lean_radius"]))
+        if abs(lean) > 0.02:
+            upper = upper.rotate(lean, resample=Image.BILINEAR, center=self.hip_pivot)
+        out = self.legs.copy()
+        out.alpha_composite(upper)
         return out
 
 # pose library (out, bend) per side, mirrored automatically
