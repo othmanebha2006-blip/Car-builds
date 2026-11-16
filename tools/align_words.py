@@ -99,7 +99,7 @@ for k in range(len(starts)):
         if db5[g] < QUIET:
             h = g
             while h < n5 - 1 and db5[h] < QUIET: h += 1
-            if h - g >= 6 or g == f:          # >= 30 ms of silence (or already silent at the timestamp)
+            if h - g >= 4 or g == f:          # >= 20 ms of silence (or already silent at the timestamp)
                 f = h
             break
     starts[k] = max(starts[k], f / 200)
@@ -107,7 +107,7 @@ SAFETY = 0.02   # audio always leads the caption
 starts = [t + SAFETY for t in starts]
 for k in range(len(starts)):          # strict: never start inside a quiet frame (e.g. a 10 ms gap before a 'b')
     f = int(round(starts[k] * 200))
-    while f < n5 - 2 and db5[f:f + 2].max() < QUIET: f += 1
+    while f < n5 - 2 and db5[f:f + 2].max() < QUIET + 4: f += 1   # voice must have clearly risen
     starts[k] = max(starts[k], f / 200)
 # monotonic
 for k in range(1, len(starts)):

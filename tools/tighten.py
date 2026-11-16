@@ -1,7 +1,7 @@
 """Shorten pauses in a voiceover: any quiet run longer than MAXGAP is cut down to KEEP seconds (with short fades)."""
 import sys, numpy as np, soundfile as sf
 src, dst = sys.argv[1], sys.argv[2]
-THR_DB, MAXGAP, KEEP, FADE = -38, 0.20, 0.14, 0.012
+THR_DB, MAXGAP, KEEP, FADE = float(sys.argv[3]) if len(sys.argv)>3 else -38, float(sys.argv[4]) if len(sys.argv)>4 else 0.20, float(sys.argv[5]) if len(sys.argv)>5 else 0.14, 0.012
 a, sr = sf.read(src, dtype="float32")
 hop = int(sr * 0.01)
 n = len(a) // hop
