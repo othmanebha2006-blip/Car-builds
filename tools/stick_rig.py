@@ -18,9 +18,9 @@ CFG = dict(
     mouth_c=(325, 452), mouth_clear=(232, 424, 418, 482), smile_box=(238, 428, 412, 478),
     eyes=[(262, 360), (365, 360)], eye_r=(17, 23),
     brows=[(230, 276, 308, 318), (339, 276, 418, 318)],
-    arms={"L": dict(A=(190, 580), W=(59, 845), erase=[(0, 652), (159, 652), (152, 690), (145, 720), (140, 760), (128, 790),
+    arms={"L": dict(A=(172, 650), W=(59, 845), erase=[(0, 652), (159, 652), (152, 690), (145, 720), (140, 760), (128, 790),
                                                     (106, 800), (106, 860), (100, 900), (105, 965), (0, 965)]),
-          "R": dict(A=(442, 580), W=(573, 845), erase=[(632, 652), (473, 652), (480, 690), (487, 720), (492, 760), (504, 790),
+          "R": dict(A=(454, 650), W=(573, 845), erase=[(632, 652), (473, 652), (480, 690), (487, 720), (492, 760), (504, 790),
                                                       (526, 800), (526, 860), (532, 900), (527, 965), (632, 965)])},
     wrist_cut=842,
     lean_radius=600,     # head drift (px) is produced by leaning the whole upper body about the hips
@@ -93,6 +93,10 @@ class StickRig:
         tb = int(np.flatnonzero(torso_fill.any(1))[-1])
         hem = (d_t > 0) & (d_t <= ow + 7) & alpha & (Y > tb - 70) & ~head_m
         keep |= hem
+        # shoulders: the drawn arm used to merge into the shirt outline here, so the cut-out outline was too thick
+        # and stair-stepped. Keep only its inner part and let the anti-aliased ring give the smooth outer contour.
+        shoulder = (Y > TOP + 530) & (Y < TOP + 720) & ~hem
+        keep &= ~(shoulder & (d_t > ow - 2))
         torso[keep] = A[keep]
         ring_a = np.clip(ow + 0.5 - d_t, 0, 1) * (d_t > 0)
         ring = (ring_a > 0) & ~keep
@@ -231,9 +235,16 @@ class StickRig:
         loc = Image.new("RGBA", ((x1 - x0) * SS, (y1 - y0) * SS), (0, 0, 0, 0)); d = ImageDraw.Draw(loc)
         sp = [((x - x0) * SS, (y - y0) * SS) for x, y in pts]
         sw = self.c["stroke"] * SS
-        d.line(sp, fill=(0, 0, 0, 255), width=sw, joint="curve")
-        for p in (sp[0], sp[-1]):
-            d.ellipse((p[0] - sw / 2, p[1] - sw / 2, p[0] + sw / 2, p[1] + sw / 2), fill=(0, 0, 0, 255))
+        # root: same thickness as the shirt outline it starts on, so nothing bulges past the shoulder contour
+        rw = self.c["outline"] * SS
+        d.ellipse((sp[0][0] - rw / 2, sp[0][1] - rw / 2, sp[0][0] + rw / 2, sp[0][1] + rw / 2), fill=(0, 0, 0, 255))
+        for i in range(6):                                   # widen gradually from outline width to arm width
+            wi = rw + (sw - rw) * (i + 1) / 6
+            d.line(sp[i:i + 2], fill=(0, 0, 0, 255), width=int(round(wi)))
+            d.ellipse((sp[i + 1][0] - wi / 2, sp[i + 1][1] - wi / 2, sp[i + 1][0] + wi / 2, sp[i + 1][1] + wi / 2), fill=(0, 0, 0, 255))
+        d.line(sp[6:], fill=(0, 0, 0, 255), width=sw, joint="curve")
+        p = sp[-1]
+        d.ellipse((p[0] - sw / 2, p[1] - sw / 2, p[0] + sw / 2, p[1] + sw / 2), fill=(0, 0, 0, 255))
         layer.alpha_composite(loc.resize((x1 - x0, y1 - y0), Image.LANCZOS), (x0, y0))
         # hand: rotate about the original wrist, then move the wrist to its new place
         hand = self.hands[side]

@@ -436,7 +436,7 @@ def draw_caption(fr, t):
     w = current_word(t)
     if not w:
         return
-    put_text(fr, w["w"], 540, 905, 92, WHITE, 10, pop(t, w["S"], 0.12, 0.75))
+    put_text(fr, w["w"], 540, 905, 74, WHITE, 8, pop(t, w["S"], 0.12, 0.75))     # captions 20% smaller
 
 # ---------------------------------------------------------------- frame
 def render(fi):
