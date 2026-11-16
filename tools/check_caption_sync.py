@@ -28,6 +28,7 @@ for w in words:
     while q > 0 and db[q - 1] < -40: q -= 1
     if lo - q >= 20 and f - lo < 12: post.append((t - lo / 200))
 post = np.array(post)
+if len(post) == 0: post = np.array([0.0])
 print(f"{len(words)} captions; {len(post)} start right after a silence/closure: caption minus voice onset "
       f"min {post.min():+.3f}s, mean {post.mean():+.3f}s, max {post.max():+.3f}s")
 print("captions shown BEFORE the voice:", early if early else "none")

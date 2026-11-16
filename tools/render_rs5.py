@@ -15,18 +15,27 @@ W, H, FPS = 1080, 1920, 30
 BLUE, GREEN, BLACK, WHITE = (30, 144, 255), (34, 197, 94), (12, 12, 12), (255, 255, 255)
 
 # ---------------------------------------------------------------- timeline
-HOOK_END_VO = 1e9           # no engine break in this video
-ENG_START, ENG_DUR = 1e9, 0.0
-SHIFT = 0.0
+_W0 = json.load(open(f"{BUILD}/words.json"))
+_mk = next(k for k, w in enumerate(_W0) if w["w"].startswith("market"))
+HOOK_END_VO = (_W0[_mk]["e"] + _W0[_mk + 1]["s"]) / 2       # cut between "market." and "The foundation"
+ENG_DUR = sf.info(f"{P}/raw/engine_sound.wav").duration - 0.1
+ENG_START = HOOK_END_VO + 0.05
+SHIFT = ENG_DUR + 0.2                                         # voice resumes right after the engine sound
 VO_DUR = sf.info(f"{BUILD}/vo_tight.wav").duration
-TOTAL = VO_DUR + 1.4
+TOTAL = VO_DUR + SHIFT + 1.4
 
 def vt(t):  # voiceover time -> final time
     return t if t < HOOK_END_VO else t + SHIFT
 
 WORDS = json.load(open(f"{BUILD}/words.json"))
+_v, _vsr = sf.read(f"{BUILD}/vo_tight.wav", dtype="float32")
+_h = _vsr // 200; _n5 = len(_v) // _h
+_db5 = 20 * np.log10(np.sqrt(np.mean(_v[: _n5 * _h].reshape(_n5, _h) ** 2, 1)) + 1e-9)
 for w in WORDS:
-    w["S"], w["E"] = vt(w["s"]), vt(w["e"])
+    f = int(round(w["s"] * 200))
+    while f < _n5 - 2 and _db5[f:f + 2].min() < -30: f += 1     # caption waits until the voice is clearly audible
+    w["s"] = max(w["s"], f / 200 + 0.035)
+    w["S"], w["E"] = vt(w["s"]), vt(max(w["e"], w["s"] + 0.05))
 
 def at(token, n=1, end=False):
     """final time of the n-th word equal to token (prefix match when token has a digit)"""
@@ -170,6 +179,7 @@ SCENES = [  # (start, kind, args)
     (T["this"], "car", "rs5_01_front34"),
     (T["underrated"], "car", "rs5_08_front34_low"),
     (T["used"], "car", "rs5_02_rear34"),
+    (ENG_START, "engine", None),
     (T["found"], "year", "rs5_03_side"),
     (T["since"], "diag", ("r8_01_front34", "rs5_01_front34")),
     (T["most"], "car", "rs5_04_front"),
@@ -195,8 +205,8 @@ SHINES = [T["r8"] - 0.05, T["years"] + 0.9, T["so"] + 0.35]
 MODS = [(T["intake"], "part_intake", "INTAKE"), (T["inlet"], "part_turbo_inlet", "TURBO INLET"),
         (T["ecu"], "part_tune", "ECU + TCU TUNE")]
 MOD_MODE = (T["start"] - 0.15, T["result"] - 0.1)
-FLASHES = [T["crazy"] + 0.25, T["hp_end"], T["so"]]
-ENG_SHOTS = []
+FLASHES = [ENG_START, T["crazy"] + 0.25, T["hp_end"], T["so"]]
+ENG_SHOTS = ["rs5_08_front34_low", "rs5_05_rear", "rs5_04_front", "rs5_02_rear34"]
 LOGO = "logo_audi"
 
 def shake(t, amp, seed=0):
@@ -213,7 +223,7 @@ def draw_scene(fr, t):
     if kind == "car":
         place(fr, arg, 540, CAR_Y, 960, 520, s, flash=fl)
     elif kind == "logo_car":
-        place(fr, LOGO, 540, 215, 260, 170, pop(t, t0 + 0.05))
+        place(fr, LOGO, 540, 215, 440, 170, pop(t, t0 + 0.05))
         place(fr, arg, 540, 590, 900, 420, s, flash=fl)
     elif kind == "diag":
         place(fr, arg[0], 330, 300, 560, 300, pop(t, t0))
@@ -227,11 +237,11 @@ def draw_scene(fr, t):
         place(fr, arg, 540, 600, 860, 420, s)
         if t > T["forty"]:
             p = pop(t, T["forty"])
-            place(fr, LOGO, 300, 215, 200, 130, p)
+            place(fr, LOGO, 300, 215, 300, 130, p)
             put_text(fr, "$40,000", 640, 215, 100, GREEN, 6, p)
     elif kind == "spec":
         place(fr, "rs5_06_hoodopen", 300, 590, 500, 430, s)
-        place(fr, "rs5_07_engine", 790, 590, 440, 440, pop(t, t0 + 0.15) * (1 + 0.03 * dt / life))
+        place(fr, "rs5_07_engine", 800, 590, 500, 500, pop(t, t0 + 0.15) * (1 + 0.03 * dt / life))
         if t < T["hp444"]:
             if t > T["liter"]:
                 put_text(fr, typed("2.9L TWIN-TURBO V6", t, T["liter"], 24), 540, 175, 70, BLACK)
@@ -252,7 +262,7 @@ def draw_scene(fr, t):
         sx, sy = shake(t, 9)
         zoom = 1 + 0.14 * (1 - ease_out((t - ct) / 0.3))
         place(fr, ENG_SHOTS[k], 540 + sx, CAR_Y + sy, 960, 520, zoom)
-        put_text(fr, "BMW 550I F10", 540, 140, 54, WHITE, 0, pop(t, t0 + 0.2), pill=True)
+        put_text(fr, "AUDI RS5 B9", 540, 140, 54, WHITE, 0, pop(t, t0 + 0.2), pill=True)
     elif kind == "mods":
         cur = [m for m in MODS if m[0] <= t]
         if not cur:
@@ -269,7 +279,7 @@ def draw_scene(fr, t):
     elif kind == "hp":
         prog = ease_io((t - T["around"]) / max(T["hp_end"] - T["around"], 0.3))
         hp = int(444 + 76 * prog) if t > T["around"] else 444
-        logo_w = 150
+        logo_w = 220
         tw = text_img(f"{hp}HP", 118, BLUE).width
         x0 = 540 - (logo_w + 30 + tw) / 2
         place(fr, LOGO, x0 + logo_w / 2, 210, logo_w, logo_w, pop(t, t0))
@@ -349,7 +359,7 @@ GEST_EVENTS = sorted([
     G("launches", "open"), G("fast,", "present_R"), G("quattro.", "raise_L"), G("embarrass", "shrug"), G("elegant", "present_L"),
     G("basically", "open"), G("executive", "hips"), G("build", "present_R"), G("R8?", "shrug", 3, hold=TOTAL),
 ], key=lambda e: e[0])
-BROW_EVENTS = [_ev(w) for w in ("underrated", "obsessed", "444", "weapon", "crazy.", "result?", "crazy", "embarrass", "R8?")] + [_ev("R8", 3)]
+BROW_EVENTS = [ENG_START + 0.1] + [_ev(w) for w in ("underrated", "obsessed", "444", "weapon", "crazy.", "result?", "crazy", "embarrass", "R8?")] + [_ev("R8", 3)]
 NODS = [_ev(w) for w in ("money,", "443", "weapon", "520", "embarrass", "build")]
 
 def _pose_vec(name):
@@ -519,7 +529,18 @@ def build_audio(path):
         if i < 0 or i >= n: return
         seg = sig[: n - i]; mix[i:i + len(seg)] += (seg * gain).astype(np.float32)
 
-    add(vo, 0, 1.0)
+    cut_i = int(HOOK_END_VO * SR)
+    fd = int(0.01 * SR); hook = vo[:cut_i].copy(); hook[-fd:] *= np.linspace(1, 0, fd)
+    add(hook, 0, 1.0)
+    rest = vo[cut_i:].copy(); rest[:fd] *= np.linspace(0, 1, fd)
+    add(rest, HOOK_END_VO + SHIFT, 1.0)
+    eng, esr = sf.read(f"{P}/raw/engine_sound.wav", dtype="float32")
+    eng = eng.mean(1) if eng.ndim > 1 else eng
+    eng = eng[: int(ENG_DUR * SR)]
+    eng = eng / np.abs(eng).max() * 0.9 * env(len(eng), 0.04, 0.4)
+    add(eng, ENG_START, 1.0)
+    for k in range(1, 4):
+        add(sfx_whoosh(), ENG_START + k * ENG_DUR / 4 - 0.1, 0.10)
 
     wh, pp, ck, bm, dg = sfx_whoosh(), sfx_pop(), sfx_click(), sfx_boom(), sfx_ding()
     for st, kind, _ in SCENES[1:]:
