@@ -1,0 +1,3 @@
+Extracted from the reference videos: sound used when parts/prices appear in the mods section (10 aligned copies, voice removed). Same pop as the car sound plus a low-frequency layer.
+Onset relative to the part appearance: -0.000 s
+Reference loudness: effect RMS (first 0.4 s from the pop) / active speech RMS = 0.974

@@ -269,7 +269,10 @@ def draw_scene(fr, t):
             place(fr, part, 540, 560, 560, 480, s)
     elif kind == "engine":
         k = min(int(dt / (ENG_DUR / len(ENG_SHOTS))), len(ENG_SHOTS) - 1); ct = t0 + k * ENG_DUR / len(ENG_SHOTS)
-        sx, sy = shake(t, 9)
+        # shake only while the engine sound is playing; it eases out with the sound's fade and then stops
+        left = (ENG_START + ENG_DUR) - t
+        amp = 9 * min(1.0, max(0.0, left / 0.4))
+        sx, sy = shake(t, amp) if amp > 0 else (0, 0)
         zoom = 1 + 0.14 * (1 - ease_out((t - ct) / 0.3))
         place(fr, ENG_SHOTS[k], 540 + sx, CAR_Y + sy, 960, 520, zoom)
         put_text(fr, "FORD FLEX ECOBOOST", 540, 140, 54, WHITE, 0, pop(t, t0 + 0.2), pill=True)
@@ -535,6 +538,15 @@ def sfx_shine():
     y = y * env + 0.25 * tr
     return y / np.abs(y).max()
 
+def sfx_part():
+    """parts / labels appear sound: tonal pop (pitch drop) + short bright tick -- pure tones, no noise"""
+    n = int(0.22 * SR); t = np.arange(n) / SR
+    f = 260 + 640 * np.exp(-t * 38)                       # 900 -> 260 Hz drop: the 'pop'
+    pop = np.sin(2 * np.pi * np.cumsum(f) / SR) * np.exp(-t * 22) * np.minimum(t / 0.002, 1)
+    tick = (np.sin(2 * np.pi * 2350 * t) + 0.5 * np.sin(2 * np.pi * 3520 * t)) * np.exp(-t * 60) * 0.45
+    y = pop + tick
+    return y / np.abs(y).max()
+
 def sfx_swish():
     """soft tonal swipe for cuts: a quick pitch glide, no noise (no hiss)"""
     n = int(0.14 * SR); t = np.arange(n) / SR
@@ -570,11 +582,19 @@ def build_audio(path):
     _ap_rms = np.sqrt((np.pad(ap, (0, max(0, int(0.4 * SR) - len(ap))))[: int(0.4 * SR)] ** 2).mean())
     ap_gain = ap_ratio * _speech / _ap_rms
     print(f"appear gain {ap_gain:.3f} (effect/speech RMS = {ap_ratio:.3f}, as in the reference)")
-    APPEAR = [st for st, kind, _ in SCENES[1:] if kind != "engine"]
-    APPEAR += [T["years"], T["taurus"], T["hp365"], T["lb350"], T["awd"], T["fraction"]] + [m[0] for m in MODS]
-    for tt in sorted(APPEAR):
+    for t0, txt, cps in ((T["years"], "2010-2019", 14), (T["years"] + 0.45, "FORD FLEX ECOBOOST", 22), (T["liter"], "3.5L TWIN-TURBO V6", 24)):
+        for c in range(len(txt)):                       # typing sound: one key click per typed letter
+            if txt[c] != " ":
+                add(ck, t0 + (c + 1) / cps, 0.12 * random.uniform(0.75, 1.0))
+    # the car appear sound (from the reference) only when a car shot appears
+    for tt in [st for st, kind, _ in SCENES[1:] if kind != "engine"]:
         if not any(abs(tt - x) < 0.25 for x in SHINES):        # the shine has its own sound
             add(ap, tt - 0.015, ap_gain)
+    # parts, numbers and labels: their own sound, never the car's
+    pt = sfx_part()
+    pt_gain = 0.85 * _speech / np.sqrt((pt[: int(0.1 * SR)] ** 2).mean())
+    for tt in [T["taurus"], T["hp365"], T["lb350"], T["awd"], T["fraction"]] + [m[0] for m in MODS]:
+        add(pt, tt, pt_gain)
     # the reference's own shine sound, placed on the first flash frame, at the reference's level relative to speech
     sh, ssr = sf.read(f"{ROOT}/assets/sfx/shine_reference.wav", dtype="float32")
     if sh.ndim > 1: sh = sh.mean(1)
