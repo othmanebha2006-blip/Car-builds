@@ -29,7 +29,9 @@ def vt(t):  # voiceover time -> final time
 
 WORDS = json.load(open(f"{BUILD}/words.json"))
 _v, _vsr = sf.read(f"{BUILD}/vo_tight.wav", dtype="float32")
-_h = _vsr // 200; _n5 = len(_v) // _h
+import scipy.signal as _ss
+_v = _ss.resample_poly(_v, 16000, _vsr).astype("float32"); _vsr = 16000   # exact 5 ms frames (80 samples)
+_h = 80; _n5 = len(_v) // _h
 _db5 = 20 * np.log10(np.sqrt(np.mean(_v[: _n5 * _h].reshape(_n5, _h) ** 2, 1)) + 1e-9)
 for w in WORDS:
     f = int(round(w["s"] * 200))
