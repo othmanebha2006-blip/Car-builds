@@ -1,0 +1,3 @@
+Extracted from the reference videos (14 aligned copies at element appearances, voice removed).
+Onset relative to the visual appearance frame: -0.015 s
+Reference loudness: effect RMS (first 0.4 s) / active speech RMS = 1.139

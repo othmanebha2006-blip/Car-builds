@@ -177,49 +177,35 @@ T = dict(
     surprise=W_("surprise"), funniest=W_("funniest"), nobody=W_("Nobody"), basically=W_("basically"),
     supermarket=W_("supermarket"), so=W_("So"), rather=W_("rather"),
 )
-CARD = lambda lines, col, car: ("card", (lines, col, car))
-SCENES = [  # (start, kind, args)
-    (0.0, *CARD([("SCAT PACK", 112)], BLACK, None)),
-    (T["m84"], *CARD([("84 MONTHS", 120), ("25% APR", 120)], RED, None)),
-    (T["fridge"], *CARD([("REFRIGERATOR", 96), ("WITH LICENSE PLATES", 62)], RED, "flex_03_side")),
+SCENES = [  # (start, kind, args) -- one shot held ~4-5 s, as in the reference videos
+    (0.0, "car", "flex_08_front34_low"),
+    (T["fridge"], "car", "flex_03_side"),
     (T["this"], "logo_car", "flex_01_front34"),
     (ENG_START, "engine", None),
-    (T["disaster"], *CARD([("ABSOLUTE", 100), ("DISASTER", 100)], RED, "flex_04_front")),
-    (T["kitchen"], *CARD([("KITCHEN", 110), ("APPLIANCE", 100)], RED, "flex_03_side")),
-    (T["grocery"], *CARD([("GROCERY GETTER", 92)], RED, "flex_02_rear34")),
-    (T["brick"], *CARD([("VISUAL APPEAL", 92), ("OF A BRICK", 92)], RED, "flex_05_rear")),
-    (T["most"], "car", "flex_08_front34_low"),
-    (T["realize"], "car", "flex_01_front34"),
-    (T["underrated"], "logo_car", "flex_08_front34_low"),
+    (T["disaster"], "car", "flex_04_front"),
+    (T["brick"], "car", "flex_05_rear"),
+    (T["realize"], "logo_car", "flex_08_front34_low"),
     (T["found"], "year", "flex_03_side"),
     (T["liter"], "spec", None),
-    (T["best"], "car", "flex_08_front34_low"),
-    (T["fraction"], "price", "flex_05_rear"),
+    (T["best"], "price", "flex_02_rear34"),
     (T["now"], "car", "flex_04_front"),
     (T["start"], "mods", None),
-    (T["sudden"], *CARD([("THREE-ROW", 104), ("FAMILY TOASTER", 92)], RED, "flex_03_side")),
-    (W_("transforms"), *CARD([("TWIN-TURBO", 104), ("TORQUE MONSTER", 92)], BLUE, "flex_08_front34_low")),
-    (T["thanks"], *CARD([("ALL-WHEEL DRIVE", 92)], BLUE, "flex_02_rear34")),
-    (T["launching"], "car", "flex_08_front34_low"),
-    (T["groceries"], "car", "flex_05_rear"),
-    (T["pulls"], "car", "flex_02_rear34"),
-    (T["surprise"], *CARD([("SURPRISES", 104), ("V8s", 120)], BLUE, "flex_01_front34")),
-    (T["funniest"], "car", "flex_04_front"),
-    (T["nobody"], *CARD([("NOBODY", 110), ("EXPECTS IT", 104)], RED, "flex_03_side")),
-    (T["basically"], *CARD([("TWIN-TURBO", 104), ("REFRIGERATOR", 96)], BLUE, "flex_01_front34")),
-    (T["supermarket"], "car", "flex_02_rear34"),
-    (T["so"], "logo_car", "flex_08_front34_low"),
-    (T["rather"], *CARD([("OR A", 90), ("MUSCLE CAR?", 104)], BLACK, "flex_01_front34")),
+    (T["sudden"], "car", "flex_08_front34_low"),
+    (T["thanks"], "car", "flex_02_rear34"),
+    (T["pulls"], "car", "flex_01_front34"),
+    (T["funniest"], "car", "flex_03_side"),
+    (T["basically"], "logo_car", "flex_08_front34_low"),
+    (T["so"], "logo_car", "flex_01_front34"),
 ]
 SCENE_T = [s[0] for s in SCENES]
 SHINES = [T["this"] - 0.05, T["years"] + 0.9, T["so"] + 0.35]
 MODS = [(T["ic"], "part_heatexchanger", "INTERCOOLER"), (T["dp"], "part_downpipe", "DOWNPIPES"),
         (T["mapS"], None, "MAP SENSOR"), (T["e30"], "part_tune", "E30 ECU TUNE")]
 MOD_MODE = (T["start"] - 0.15, T["sudden"] - 0.1)
-FLASHES = [ENG_START, T["disresp"] + 0.2, T["monster"], T["so"]]
-ENG_SHOTS = ["flex_08_front34_low", "flex_05_rear", "flex_04_front", "flex_02_rear34"]
+FLASHES = [ENG_START]
+ENG_SHOTS = ["flex_05_rear", "flex_02_rear34"]
 LOGO = "logo_ford"
-CARD_TIMES = [st for st, k, _ in SCENES if k == "card"]
+
 
 def shake(t, amp, seed=0):
     r = random.Random(int(t * FPS) * 7 + seed)
@@ -254,10 +240,11 @@ def draw_scene(fr, t):
             put_text(fr, typed("FORD FLEX ECOBOOST", t, T["years"] + 0.45, 22), 540, 300, 56, BLACK)
         place(fr, arg, 540, 600, 940, 440, s, flash=fl)
     elif kind == "price":
-        place(fr, arg, 540, 600, 860, 420, s)
-        p = pop(t, t0)
-        put_text(fr, "FRACTION OF", 540, 170, 90, GREEN, 7, p)
-        put_text(fr, "THE PRICE", 540, 270, 90, GREEN, 7, p)
+        place(fr, arg, 540, 620, 900, 420, s)
+        if t > T["fraction"]:
+            p = pop(t, T["fraction"])
+            put_text(fr, "FRACTION OF", 540, 170, 90, GREEN, 7, p)
+            put_text(fr, "THE PRICE", 540, 270, 90, GREEN, 7, p)
     elif kind == "spec":
         place(fr, "flex_06_hoodopen", 300, 600, 500, 430, s)
         place(fr, "flex_07_engine", 800, 600, 480, 480, pop(t, t0 + 0.15) * (1 + 0.03 * dt / life))
@@ -281,7 +268,7 @@ def draw_scene(fr, t):
         else:
             place(fr, part, 540, 560, 560, 480, s)
     elif kind == "engine":
-        k = min(int(dt / (ENG_DUR / 4)), 3); ct = t0 + k * ENG_DUR / 4
+        k = min(int(dt / (ENG_DUR / len(ENG_SHOTS))), len(ENG_SHOTS) - 1); ct = t0 + k * ENG_DUR / len(ENG_SHOTS)
         sx, sy = shake(t, 9)
         zoom = 1 + 0.14 * (1 - ease_out((t - ct) / 0.3))
         place(fr, ENG_SHOTS[k], 540 + sx, CAR_Y + sy, 960, 520, zoom)
@@ -575,23 +562,19 @@ def build_audio(path):
     eng = eng / np.abs(eng).max() * 0.9 * env(len(eng), 0.04, 0.4)
     add(eng, ENG_START, 1.0)
 
-    wh, pp, ck, bm, dg = sfx_whoosh(), sfx_pop(), sfx_click(), sfx_boom(), sfx_ding()
-    for tt in [T["years"], T["taurus"], T["hp365"], T["lb350"], T["awd"], T["fraction"]] + CARD_TIMES:
-        add(pp, tt, 0.28)
-    sw = sfx_swish()
-    for st, kind, _ in SCENES[1:]:
-        if kind in ("car", "logo_car", "year", "spec", "price"):
-            add(sw, st - 0.04, 0.10)
-    for (mt, _, _) in MODS:
-        add(sw, mt - 0.04, 0.10)
-        add(pp, mt, 0.32); 
-    for t0, txt, cps in ((T["years"], "2010-2019", 14), (T["years"] + 0.45, "FORD FLEX ECOBOOST", 22), (T["liter"], "3.5L TWIN-TURBO V6", 24)):
-        for c in range(len(txt)):
-            add(ck, t0 + c / cps, 0.10 * random.uniform(0.7, 1.0))
-    add(dg, T["fraction"] + 0.05, 0.22)
-    add(bm, T["disresp"] + 0.2, 0.55)
-    add(bm, T["monster"], 0.6)
-    add(bm, T["so"], 0.3)
+    ck = sfx_click()
+    ap, _ = sf.read(f"{ROOT}/assets/sfx/appear_reference.wav", dtype="float32")
+    ap_ratio = float(open(f"{ROOT}/assets/sfx/appear_reference.txt").read().split("= ")[-1].split()[0])
+    _env = np.convolve(np.abs(vo), np.ones(441) / 441, "same")
+    _speech = np.sqrt((vo[_env > 0.02] ** 2).mean())
+    _ap_rms = np.sqrt((np.pad(ap, (0, max(0, int(0.4 * SR) - len(ap))))[: int(0.4 * SR)] ** 2).mean())
+    ap_gain = ap_ratio * _speech / _ap_rms
+    print(f"appear gain {ap_gain:.3f} (effect/speech RMS = {ap_ratio:.3f}, as in the reference)")
+    APPEAR = [st for st, kind, _ in SCENES[1:] if kind != "engine"]
+    APPEAR += [T["years"], T["taurus"], T["hp365"], T["lb350"], T["awd"], T["fraction"]] + [m[0] for m in MODS]
+    for tt in sorted(APPEAR):
+        if not any(abs(tt - x) < 0.25 for x in SHINES):        # the shine has its own sound
+            add(ap, tt - 0.015, ap_gain)
     # the reference's own shine sound, placed on the first flash frame, at the reference's level relative to speech
     sh, ssr = sf.read(f"{ROOT}/assets/sfx/shine_reference.wav", dtype="float32")
     if sh.ndim > 1: sh = sh.mean(1)
