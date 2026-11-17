@@ -18,9 +18,10 @@ BLUE, GREEN, BLACK, WHITE = (30, 144, 255), (34, 197, 94), (12, 12, 12), (255, 2
 _W0 = json.load(open(f"{BUILD}/words.json"))
 _mk = next(k for k, w in enumerate(_W0) if w["w"] == "3.3T.")
 HOOK_END_VO = (_W0[_mk]["e"] + _W0[_mk + 1]["s"]) / 2       # cut between "This is the Ford Flex EcoBoost." and "At first glance"
-ENG_DUR = sf.info(f"{P}/raw/engine_sound.wav").duration - 0.1
-ENG_START = HOOK_END_VO + 0.05
-SHIFT = ENG_DUR + 0.2                                         # voice resumes right after the engine sound
+USE_ENGINE = False                                            # user: no engine-clip sound in this video
+ENG_DUR = (sf.info(f"{P}/raw/engine_sound.wav").duration - 0.1) if USE_ENGINE else 0.0
+ENG_START = HOOK_END_VO + 0.05 if USE_ENGINE else 1e9
+SHIFT = (ENG_DUR + 0.2) if USE_ENGINE else 0.0                                         # voice resumes right after the engine sound
 VO_DUR = sf.info(f"{BUILD}/vo_tight.wav").duration
 TOTAL = VO_DUR + SHIFT + 1.4
 
@@ -42,8 +43,9 @@ for w in WORDS:
     while f < _n5 - 2 and _db5[f:f + 2].min() < -30: f += 1     # caption waits until the voice is clearly audible
     w["s"] = max(w["s"], f / 200 + 0.035)
     f2 = int(round(w["s"] * 200))                               # never start inside a gap: wait for the voice to resume
-    if f2 < _n5 - 2 and _db5[f2:f2 + 2].max() < -38:
-        g2 = f2
+    dip = [q for q in range(f2, min(f2 + 8, _n5)) if _db5[q] < -40]   # a gap within 40 ms (frame rounding can land in it)
+    if dip:
+        g2 = dip[0]
         while g2 < min(f2 + 40, _n5 - 2) and _db5[g2] < -34: g2 += 1
         if g2 < f2 + 40: w["s"] = g2 / 200 + 0.01
     w["S"], w["E"] = vt(w["s"]), vt(max(w["e"], w["s"] + 0.05))
@@ -190,7 +192,7 @@ SCENES = [  # (start, kind, args) -- one shot held ~5-6 s, as in the reference v
     (T["beautiful"], "car", "g70_08_front34_low"),
     (T["glance"], "car", "g70_03_side"),
     (T["talking"], "year", "g70_01_front34"),
-    (ENG_START, "engine", None),
+] + ([(ENG_START, "engine", None)] if USE_ENGINE else []) + [
     (T["because"], "car", "g70_04_front"),
     (T["they"], "car", "g70_02_rear34"),
     (T["but"], "car", "g70_08_front34_low"),
@@ -209,7 +211,7 @@ SHINES = [T["genesis"], T["badge"], T["would"] + 0.35]
 MODS = [(T["intake"], "part_intake", "INTAKE"), (T["ic"], "part_intercooler", "INTERCOOLER"),
         (T["exhaust"], "part_exhaust", "EXHAUST"), (T["ecu"], "part_tune", "ECU TUNE"), (T["jb4"], "part_jb4", "JB4")]
 MOD_MODE = (T["start"] - 0.15, T["sudden"] - 0.1)
-FLASHES = [ENG_START]
+FLASHES = [ENG_START] if USE_ENGINE else []
 ENG_SHOTS = ["g70_05_rear", "g70_02_rear34"]
 LOGO = None
 TITLE = ("GENESIS G70", "3.3T TWIN-TURBO")
@@ -376,7 +378,7 @@ GEST_EVENTS = sorted([
     G("Basically,", "open"), G("twin-turbo", "raise_L"), G("daily", "present_R"), G("underrated", "raise_R"),
     G("BMW", "shrug", 4, hold=TOTAL),
 ], key=lambda e: e[0])
-BROW_EVENTS = [ENG_START + 0.1] + [_ev(w) for w in ("M340i", "beautiful", "underestimate.", "ignore", "365", "potential.", "animal.", "surprise", "problem.")] + [_ev("BMW", 4)]
+BROW_EVENTS = ([ENG_START + 0.1] if USE_ENGINE else []) + [_ev(w) for w in ("M340i", "beautiful", "underestimate.", "ignore", "365", "potential.", "animal.", "surprise", "problem.")] + [_ev("BMW", 4)]
 NODS = [_ev(w) for w in ("money,", "market.", "executives.", "376", "simple.", "power.", "Mustangs,")]
 
 def _pose_vec(name):
@@ -566,11 +568,12 @@ def build_audio(path):
     add(hook, 0, 1.0)
     rest = vo[cut_i:].copy(); rest[:fd] *= np.linspace(0, 1, fd)
     add(rest, HOOK_END_VO + SHIFT, 1.0)
-    eng, esr = sf.read(f"{P}/raw/engine_sound.wav", dtype="float32")
-    eng = eng.mean(1) if eng.ndim > 1 else eng
-    eng = eng[: int(ENG_DUR * SR)]
-    eng = eng / np.abs(eng).max() * 0.9 * env(len(eng), 0.04, 0.4)
-    add(eng, ENG_START, 1.0)
+    if USE_ENGINE:
+        eng, esr = sf.read(f"{P}/raw/engine_sound.wav", dtype="float32")
+        eng = eng.mean(1) if eng.ndim > 1 else eng
+        eng = eng[: int(ENG_DUR * SR)]
+        eng = eng / np.abs(eng).max() * 0.9 * env(len(eng), 0.04, 0.4)
+        add(eng, ENG_START, 1.0)
 
     ck = sfx_click()
     ap, _ = sf.read(f"{ROOT}/assets/sfx/appear_reference.wav", dtype="float32")
