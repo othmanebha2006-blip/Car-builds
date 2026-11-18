@@ -349,7 +349,7 @@ for w in WORDS:
     pick = [seq[int(k * len(seq) / n)] for k in range(n)]
     for k, v in enumerate(pick):
         a0 = f0 + (f1 - f0) * k // n; a1 = f0 + (f1 - f0) * (k + 1) // n
-        MOUTH[a0:a1] = 8 if v in (2, 5) else v      # while talking: the smaller grin
+        MOUTH[a0:a1] = 8 if v in (2, 5, 6) else v   # while talking: the smaller grin (also for F/V, as in the reference)
 
 def mouth_shape(t):
     return int(MOUTH[min(int(t * FPS), NF_ALL - 1)])
@@ -551,7 +551,8 @@ def build_audio(path):
         eng, esr = sf.read(f"{P}/raw/engine_sound.wav", dtype="float32")
         eng = eng.mean(1) if eng.ndim > 1 else eng
         eng = eng[: int(ENG_DUR * SR)]
-        eng = eng / np.abs(eng).max() * 0.9 * env(len(eng), 0.04, 0.4)
+        _sp = np.sqrt((vo[np.convolve(np.abs(vo), np.ones(441) / 441, "same") > 0.02] ** 2).mean())
+        eng = eng / np.sqrt((eng ** 2).mean()) * _sp * 1.15 * env(len(eng), 0.04, 0.4)   # engine a bit louder than the voice, by RMS
         add(eng, ENG_START, 1.0)
 
     ck = sfx_click()

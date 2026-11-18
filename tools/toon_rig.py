@@ -152,27 +152,32 @@ class ToonRig:
             up = [(cx - hw + 2 * hw * i / n, cy + top * (1 - ((2 * i / n) - 1) ** 2) * 0 + top) for i in range(n + 1)]
             lo = [(cx + hw - 2 * hw * i / n, cy + bot * (1 - ((2 * i / n) - 1) ** 2)) for i in range(n + 1)]
             return up, lo
+        def dmouth(wid, dep, teeth=True, tongue=True):
+            """reference-style open mouth: flat top edge, round bottom ('D' rotated), black inside,
+            white top-teeth band, red tongue at the bottom"""
+            w2 = wid * SS / 2; dp = dep * SS; top = cy - 6 * SS
+            n = 40
+            bottom = [(cx + w2 * math.cos(math.pi * i / n), top + dp * math.sin(math.pi * i / n)) for i in range(n + 1)]
+            shape = [(cx - w2, top), (cx + w2, top)] + bottom[::-1][::-1]
+            shape = [(cx - w2, top)] + [(cx - w2 + 2 * w2 * i / n, top - 3 * SS * math.sin(math.pi * i / n)) for i in range(n + 1)] + bottom
+            mask = Image.new("L", im.size, 0); ImageDraw.Draw(mask).polygon(shape, fill=255)
+            inner = Image.new("RGBA", im.size, (20, 8, 10, 255))
+            di = ImageDraw.Draw(inner)
+            if teeth:
+                di.rectangle((cx - w2, top - 6 * SS, cx + w2, top + max(7, dep * 0.22) * SS), fill=W_)
+            if tongue:
+                di.ellipse((cx - w2 * 0.62, top + dp * 0.62, cx + w2 * 0.62, top + dp * 1.25), fill=(214, 34, 40, 255))
+            im.paste(inner, (0, 0), mask)
+            d.line(shape + [shape[0]], fill=K, width=lw, joint="curve")
         if v == 1:   # closed smile
             pts = [(cx - hw + 2 * hw * i / 30, cy + 18 * SS * (1 - ((2 * i / 30) - 1) ** 2)) for i in range(31)]
             d.line(pts, fill=K, width=lw, joint="curve")
-        elif v == 3:  # open: top teeth + tongue
-            up, lo = lens(-14 * SS, 46 * SS)
-            d.polygon(up + lo, fill=(90, 20, 26, 255))
-            t_up, t_lo = lens(-14 * SS, 8 * SS)
-            d.polygon(t_up + t_lo, fill=W_)
-            d.ellipse((cx - 40 * SS, cy + 18 * SS, cx + 40 * SS, cy + 50 * SS), fill=(220, 70, 80, 255))
-            d.line(up + lo + [up[0]], fill=K, width=lw, joint="curve")
-        elif v == 4:  # small o
-            d.ellipse((cx - 18 * SS, cy - 10 * SS, cx + 18 * SS, cy + 26 * SS), fill=(90, 20, 26, 255), outline=K, width=lw)
-        elif v == 6:  # f/v
-            pts = [(cx - hw * 0.8 + 2 * hw * 0.8 * i / 20, cy + 4 * SS) for i in range(21)]
-            d.line(pts, fill=K, width=lw)
-            for i in range(5):
-                x = cx - 50 * SS + i * 20 * SS
-                d.rounded_rectangle((x, cy + 6 * SS, x + 18 * SS, cy + 22 * SS), radius=4 * SS, fill=W_, outline=K, width=4 * SS)
-        elif v == 7:  # round O
-            d.ellipse((cx - 30 * SS, cy - 14 * SS, cx + 30 * SS, cy + 42 * SS), fill=(90, 20, 26, 255), outline=K, width=lw)
-            d.chord((cx - 20 * SS, cy + 14 * SS, cx + 20 * SS, cy + 36 * SS), 0, 180, fill=(220, 70, 80, 255))
+        elif v == 3:  # wide open (A, I, open vowels)
+            dmouth(150, 58)
+        elif v == 7:  # medium open (O, AW)
+            dmouth(118, 44)
+        elif v == 4:  # small open (OO, U, W)
+            dmouth(84, 32, tongue=False)
         k = MOUTH_SCALE                                   # talking mouth a bit smaller than the drawn grin
         sm = im.resize((int(240 * k), int(140 * k)), Image.LANCZOS)
         out = Image.new("RGBA", (240, 140), (0, 0, 0, 0)); out.alpha_composite(sm, ((240 - sm.width) // 2, int(60 - 60 * k)))
