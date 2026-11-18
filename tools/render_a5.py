@@ -35,19 +35,16 @@ _v = _ss.resample_poly(_v, 16000, _vsr).astype("float32"); _vsr = 16000   # exac
 _h = 80; _n5 = len(_v) // _h
 _db5 = 20 * np.log10(np.sqrt(np.mean(_v[: _n5 * _h].reshape(_n5, _h) ** 2, 1)) + 1e-9)
 for w in WORDS:
+    # caption = the word's measured onset; only if the voice is still silent there, move to where it becomes audible
     f = int(round(w["s"] * 200))
-    for g_ in range(f, min(f + 14, _n5)):                       # a silence starting within 70 ms = previous word's tail
-        if _db5[g_] < -40:
-            while g_ < _n5 - 1 and _db5[g_] < -40: g_ += 1
-            f = g_; break
-    while f < _n5 - 2 and _db5[f:f + 2].min() < -30: f += 1     # caption waits until the voice is clearly audible
-    w["s"] = max(w["s"], f / 200 + 0.035)
-    f2 = int(round(w["s"] * 200))                               # never start inside a gap: wait for the voice to resume
-    dip = [q for q in range(f2, min(f2 + 8, _n5)) if _db5[q] < -40]   # a gap within 40 ms (frame rounding can land in it)
-    if dip:
-        g2 = dip[0]
-        while g2 < min(f2 + 40, _n5 - 2) and _db5[g2] < -34: g2 += 1
-        if g2 < f2 + 40: w["s"] = g2 / 200 + 0.01
+    while f < _n5 - 2 and _db5[f:f + 2].max() < -40: f += 1
+    w["s"] = max(w["s"], f / 200)
+    for _ in range(6):                      # the video frame that shows the caption must already have voice
+        fr_t = math.ceil(vt(w["s"]) * FPS - 1e-9) / FPS - (vt(w["s"]) - w["s"])
+        q = int(round(fr_t * 200))
+        if q >= _n5 - 3 or _db5[max(q - 1, 0):q + 3].min() >= -40: break      # whole window -5..+15 ms voiced
+        while q < _n5 - 3 and _db5[max(q - 1, 0):q + 3].min() < -40: q += 1
+        w["s"] = q / 200
     w["S"], w["E"] = vt(w["s"]), vt(max(w["e"], w["s"] + 0.05))
 
 def at(token, n=1, end=False):
@@ -352,7 +349,7 @@ for w in WORDS:
     pick = [seq[int(k * len(seq) / n)] for k in range(n)]
     for k, v in enumerate(pick):
         a0 = f0 + (f1 - f0) * k // n; a1 = f0 + (f1 - f0) * (k + 1) // n
-        MOUTH[a0:a1] = v
+        MOUTH[a0:a1] = 8 if v in (2, 5) else v      # while talking: the smaller grin
 
 def mouth_shape(t):
     return int(MOUTH[min(int(t * FPS), NF_ALL - 1)])
@@ -365,15 +362,17 @@ MOVE = 2 / 30              # reference V2: poses snap in 2 frames, no in-between
 HOLD = 3.0                 # reference V2: ~3.3 s per pose
 
 G = lambda w, pose, n=1, hold=HOLD: (_ev(w, n) - 0.03, pose, hold)
-GEST_EVENTS = sorted([      # one pose per key phrase, ~every 3.5 s
-    G("want", "raise_R"), G("beautiful", "open"), G("glance,", "out_R"), G("talking", "shrug"),
-    G("Because", "raise_L"), G("They", "out_L"), G("But", "hips"), G("EA888", "raise_R"), G("Depending", "open"),
-    G("potential", "shrug"), G("mod", "out_R"), G("intake,", "out_L", hold=1.2), G("intercooler,", "open", hold=1.2),
-    G("downpipe,", "out_L", hold=1.2), G("Stage", "raise_L", hold=1.6), G("That's", "raise_R"), G("with", "open", 2),
-    G("K04", "raise_L"), G("Suddenly,", "shrug"), G("becomes", "out_R"), G("Basically,", "open"),
-    G("Would", "raise_R"), G("RS", "shrug", 2, hold=TOTAL),
+GEST_EVENTS = sorted([      # confident, decisive poses on the key words (~every 3 s), no shrugs
+    G("want", "raise_R"), G("beautiful", "open"), G("glance,", "out_R_hip"), G("talking", "raise_L_hip"),
+    G("Because", "out_L"), G("underestimate", "hips"), G("They", "out_R"), G("But", "raise_R_hip"),
+    G("EA888", "out_L_hip"), G("Depending", "open"), G("208", "raise_R"), G("potential", "hips"),
+    G("mod", "out_R"), G("intake,", "out_L", hold=1.2), G("intercooler,", "raise_L", hold=1.2),
+    G("downpipe,", "out_L", hold=1.2), G("Stage", "raise_L", hold=1.6), G("That's", "raise_R_hip"),
+    G("with", "open", 2), G("280–290", "raise_L"), G("K04", "out_L_hip"), G("Suddenly,", "raise_R"),
+    G("becomes", "open"), G("styling", "out_R_hip"), G("Basically,", "hips"), G("Would", "raise_R_hip"),
+    G("RS", "open", 2, hold=TOTAL),
 ], key=lambda e: e[0])
-TILTS = [3.0, -2.5, 4.0, -3.5, 1.5, -1.0, 3.5, -4.0]
+TILTS = [2.0, -1.5, 2.5, -2.0, 1.0, -1.0, 2.0, -2.5]   # confident: steadier head
 
 def _pose_vec(name):
     p = POSES[name]; return np.array([p["L"][0], p["L"][1], p["R"][0], p["R"][1]], float)
@@ -407,9 +406,9 @@ def head_state(t):
         tilt = prev + (tgt - prev) * x
         prev = tilt if x >= 1 else prev + (tgt - prev) * x
         prev = tgt if x >= 1 else prev
-    dx = 13 * math.sin(2 * math.pi * t / 7.3)
+    dx = 9 * math.sin(2 * math.pi * t / 7.3)
     blink = any(0 <= t - b < 0.13 for b in BLINKS)
-    return dx, 0.0, tilt, 0.0, blink
+    return dx, -3.0, tilt, 0.0, blink                         # chin slightly up
 
 def draw_char(fr, t):
     dx, dy, tilt, brow, blink = head_state(t)

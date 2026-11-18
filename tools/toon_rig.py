@@ -10,6 +10,7 @@ from PIL import Image, ImageDraw
 from scipy import ndimage
 
 PAD = 330
+MOUTH_SCALE = 0.78
 TOP = 120
 SS = 2
 
@@ -127,6 +128,15 @@ class ToonRig:
             ImageDraw.Draw(em).ellipse((ex - rx, ey - ry, ex + rx, ey + ry), fill=255)
             self.eye_m |= (np.asarray(em) > 0) & notskin
         self.eye_m = ndimage.binary_dilation(self.eye_m, iterations=4)
+        # the grin alone (largest connected drawing inside the mouth ellipse), for the scaled talking grin
+        gm = mk & notskin
+        lab, n = ndimage.label(gm)
+        if n: gm = lab == 1 + int(np.argmax(ndimage.sum(gm, lab, range(1, n + 1))))
+        gm = ndimage.binary_dilation(gm, iterations=1) & (head[..., 3] > 0)
+        spr = np.zeros_like(head); spr[gm] = head[gm]
+        ys, xs = np.nonzero(gm)
+        self.grin_sprite = Image.fromarray(spr[ys.min():ys.max() + 1, xs.min():xs.max() + 1])
+        self.grin_center = ((xs.min() + xs.max()) / 2, (ys.min() + ys.max()) / 2)
         self.head_full = Image.fromarray(head)
         self.head_clean = Image.fromarray(self.head_clean)
         self.pivot = self.P(cfg["neck_pivot"])
@@ -163,13 +173,22 @@ class ToonRig:
         elif v == 7:  # round O
             d.ellipse((cx - 30 * SS, cy - 14 * SS, cx + 30 * SS, cy + 42 * SS), fill=(90, 20, 26, 255), outline=K, width=lw)
             d.chord((cx - 20 * SS, cy + 14 * SS, cx + 20 * SS, cy + 36 * SS), 0, 180, fill=(220, 70, 80, 255))
-        return im.resize((240, 140), Image.LANCZOS)
+        k = MOUTH_SCALE                                   # talking mouth a bit smaller than the drawn grin
+        sm = im.resize((int(240 * k), int(140 * k)), Image.LANCZOS)
+        out = Image.new("RGBA", (240, 140), (0, 0, 0, 0)); out.alpha_composite(sm, ((240 - sm.width) // 2, int(60 - 60 * k)))
+        return out
 
     def face(self, viseme=2, blink=False):
         key = (viseme, blink)
         if key in self._cache: return self._cache[key]
-        if viseme in (2, 5):                       # teeth grin = the original drawing
+        if viseme in (2, 5):                       # teeth grin = the original drawing (rest / pauses)
             im = self.head_full.copy()
+        elif viseme == 8:                          # talking teeth: the same grin, scaled down
+            im = self.head_clean.copy()
+            k = MOUTH_SCALE; g = self.grin_sprite
+            sg = g.resize((int(g.width * k), int(g.height * k)), Image.LANCZOS)
+            cx, cy = self.grin_center
+            im.alpha_composite(sg, (int(cx - sg.width / 2), int(cy - sg.height / 2 - 3)))
         else:
             im = self.head_clean.copy()
             cx, cy = self.P(self.c["mouth_c"])
@@ -248,11 +267,15 @@ class ToonRig:
 
 POSES = {   # (out, bend) per side; snap between these
     "rest":      {"L": (0, 0),     "R": (0, 0)},
-    "open":      {"L": (22, -20),  "R": (22, -20)},       # fists slightly away from the body
+    "open":      {"L": (32, -26),  "R": (32, -26)},       # arms open wide, confident
     "shrug":     {"L": (28, -85),  "R": (28, -85)},       # both forearms up and out (palms-up shrug)
-    "raise_R":   {"L": (0, 0),     "R": (22, -125)},      # one fist raised by the shoulder (the 'point up' beat)
-    "raise_L":   {"L": (22, -125), "R": (0, 0)},
-    "out_R":     {"L": (4, 0),     "R": (62, -10)},       # one arm out to the side
-    "out_L":     {"L": (62, -10),  "R": (4, 0)},
+    "raise_R":   {"L": (0, 0),     "R": (28, -135)},      # fist raised high by the shoulder (emphasis)
+    "raise_L":   {"L": (28, -135), "R": (0, 0)},
+    "raise_R_hip": {"L": (30, 70), "R": (28, -135)},      # fist up + other hand on the hip (power pose)
+    "raise_L_hip": {"L": (28, -135), "R": (30, 70)},
+    "out_R":     {"L": (4, 0),     "R": (74, -8)},        # arm pointing straight out to the side
+    "out_L":     {"L": (74, -8),   "R": (4, 0)},
+    "out_R_hip": {"L": (30, 70),   "R": (74, -8)},        # point out + hand on hip
+    "out_L_hip": {"L": (74, -8),   "R": (30, 70)},
     "hips":      {"L": (30, 70),   "R": (30, 70)},        # elbows out, fists at the hips
 }
