@@ -11,13 +11,14 @@ from scipy import ndimage
 
 PAD = 330
 MOUTH_SCALE = 0.78
+SHADE = True
 TOP = 120
 SS = 2
 
 CFG = dict(
     outline=9, skin=None,
     arms={"L": dict(U=(116, 598), W=(72, 768), r=30), "R": dict(U=(390, 598), W=(435, 768), r=30)},
-    wrist_cut=770, sleeve_hem=624,
+    wrist_cut=748, sleeve_hem=624,
     neck_pivot=(243, 452), neck_x=(196, 292), collar_y=438,
     mouth_c=(257, 368), mouth_clear=(178, 330, 338, 404),
     eyes=[(193, 270), (312, 270)], eye_r=(36, 45),
@@ -86,18 +87,24 @@ class ToonRig:
         for side, m in (("L", armL), ("R", armR)):
             hm = m & (Y >= wc)
             hand = np.zeros_like(A); hand[hm] = A[hm]
-            for k in range(7):
-                r = hand[wc + k]; r[..., 3] = (r[..., 3] * (k + 1) / 8).astype(np.uint8)
+            # no feathering: the cut sits on the straight forearm (covered by the drawn arm), fist outline stays solid
             self.hands[side] = Image.fromarray(hand)
         arms = armL | armR
         # head = everything above the collar that isn't shirt, plus the neck down to the collar (extended under it)
         nx0, nx1 = cfg["neck_x"][0] + PAD, cfg["neck_x"][1] + PAD
         head_m = alpha & ~shirt_full & ~arms & ((Y < cfg["collar_y"] + TOP) | ((X >= nx0) & (X <= nx1) & (Y < cfg["collar_y"] + TOP + 30)))
+        # the shirt's own edge (outline + its soft anti-aliased fringe) stays with the body, except the neck opening
+        near_shirt = d_s <= cfg["outline"] + 7
+        neck_cols = (X >= nx0) & (X <= nx1)
+        head_m &= ~(near_shirt & ~neck_cols & (Y > cfg["collar_y"] + TOP - 60))
         head = np.zeros_like(A); head[head_m] = A[head_m]
         y_ext = cfg["collar_y"] + TOP - 2
-        for x in range(nx0, nx1 + 1):                     # neck continues under the collar
-            if head[y_ext, x, 3] > 0:
-                head[y_ext:y_ext + 40, x] = head[y_ext, x]
+        row = head[y_ext]; xs_n = [x for x in range(nx0, nx1 + 1) if row[x, 3] > 0]
+        if xs_n:                                          # neck continues under the collar: flat skin + side outlines
+            lx, rx = xs_n[0], xs_n[-1]
+            head[y_ext:y_ext + 40, lx:rx + 1] = (0, 0, 0, 255)
+            head[y_ext:y_ext + 40, lx + cfg["outline"]:rx - cfg["outline"] + 1] = self.skin + (255,)
+        self.neck_box = (nx0 + cfg["outline"], cfg["collar_y"] + TOP - 14, nx1 - cfg["outline"], cfg["collar_y"] + TOP + 45)
         base = np.zeros_like(A); bm = alpha & ~head_m & ~arms; base[bm] = A[bm]
         # sleeves: the only part of the body that may cover the arms
         sl = Image.new("L", size, 0); ds = ImageDraw.Draw(sl)
@@ -109,6 +116,10 @@ class ToonRig:
         base[stub] = 0; bm = bm & ~stub
         self.base = Image.fromarray(base)
         self.sleeves = bm & (np.asarray(sl) > 0)          # sleeve shape only (up to the sleeve/torso seam)
+        # everything above the sleeve's bottom edge, outside the torso: an arm can't appear there
+        bl2 = shirt_full & ((X < PAD + 160) | (X > PAD + 347)) & (Y > hem - 140)
+        ybot2 = np.where(bl2.any(0), (H - 1) - np.argmax(bl2[::-1], 0), -1)
+        self.above_hem = (Y < ybot2[None, :] - 2) & ((X < PAD + 160) | (X > PAD + 347))
         self.base = Image.fromarray(base)
         self.masks = dict(shirt=shirt_full, arms=arms, head=head_m, alpha=alpha)
         # face: clear the mouth area for visemes, keep the original grin as the rest mouth
@@ -250,6 +261,37 @@ class ToonRig:
         return np.asarray(m) > 0
 
     # -------------------------------------------------------------- pose
+    def _shade(self, out):
+        """soft 3D shading: fill regions darken toward their outline on the side away from a top-left light,
+        get a faint highlight on the lit side; small contact shadows under the chin/collar and the cap brim."""
+        A = np.array(out); rgb = A[..., :3].astype(np.float32); al = A[..., 3]
+        ys, xs = np.nonzero(al > 0)
+        y0, y1, x0, x1 = ys.min(), ys.max() + 1, xs.min(), xs.max() + 1
+        sub = rgb[y0:y1, x0:x1]; a_ = al[y0:y1, x0:x1]
+        mx = sub.max(-1); mn = sub.min(-1)
+        fill = (a_ > 200) & (mx > 70) & ~((mn > 235))          # coloured fills (not black lines, not whites)
+        dist = ndimage.distance_transform_edt(fill)
+        gy, gx = np.gradient(ndimage.gaussian_filter(dist, 2.0))
+        nrm = np.hypot(gx, gy) + 1e-6
+        Lx, Ly = -0.55, -0.83                                   # light from the top-left
+        facing = (gx * Lx + gy * Ly) / nrm                      # gradient points inward: >0 = edge faces away from light
+        rim = np.exp(-dist / 16.0)
+        dark = np.clip(facing, 0, 1) * rim * 0.30 + rim * 0.06  # shadow side + slight overall volume
+        lite = np.clip(-facing, 0, 1) * np.exp(-dist / 7.0) * 0.10
+        nb = self.neck_box; nm = np.zeros(fill.shape, bool)
+        nm[max(nb[1] - y0, 0):max(nb[3] - y0, 0), max(nb[0] - x0, 0):max(nb[2] - x0, 0)] = True
+        skinpx = np.abs(sub - np.array(self.skin, np.float32)).max(-1) < 40
+        nm &= skinpx                                            # only the neck's skin, never the collar
+        dark = np.where(nm, 0.0, dark); lite = np.where(nm, 0.0, lite)
+        k = (1 - dark + lite)[..., None]
+        sub2 = np.where(fill[..., None], np.clip(sub * k, 0, 255), sub)
+        # contact shadow under the chin: darkest right below the chin, fading down the neck (no hard edges)
+        yy = np.arange(fill.shape[0])[:, None] + y0
+        chin_shadow = np.where(nm, 0.22 * np.exp(-np.clip(yy - nb[1], 0, None) / 14.0), 0.0)
+        sub2 = np.where(fill[..., None], sub2 * (1 - chin_shadow[..., None]), sub2)
+        A[y0:y1, x0:x1, :3] = sub2.astype(np.uint8)
+        return Image.fromarray(A)
+
     def pose(self, arms=None, viseme=2, blink=False, brow=0.0, head_dx=0.0, head_dy=0.0, tilt=0.0, sway=0.0):
         arms = arms or POSES["rest"]
         out = Image.new("RGBA", self.base.size, (0, 0, 0, 0))
@@ -265,10 +307,11 @@ class ToonRig:
             full = Image.new("RGBA", self.base.size, (0, 0, 0, 0))
             self._draw_arm(full, side, *arms[side])                 # whole arm, one shape: seamless elbow
             fa = np.array(full)
-            hide = self.sleeves & self._seg_mask(side, arms[side], "upper") & ~self._seg_mask(side, arms[side], "lower")
+            up = self._seg_mask(side, arms[side], "upper") & ~self._seg_mask(side, arms[side], "lower")
+            hide = up & (self.sleeves | self.above_hem)
             fa[hide] = 0                                            # only the upper arm goes under the sleeve
             out.alpha_composite(Image.fromarray(fa))
-        return out
+        return self._shade(out) if SHADE else out
 
 POSES = {   # (out, bend) per side; snap between these
     "rest":      {"L": (0, 0),     "R": (0, 0)},

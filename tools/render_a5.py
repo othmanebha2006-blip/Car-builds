@@ -345,11 +345,29 @@ MOUTH = np.full(NF_ALL, 2, int)          # rest mouth = the teeth grin (referenc
 for w in WORDS:
     f0, f1 = int(round(w["S"] * FPS)), max(int(round(w["E"] * FPS)), int(round(w["S"] * FPS)) + 2)
     seq = _visemes(w["w"])
-    n = max(1, min(len(seq), (f1 - f0) // 2))           # at least 2 frames per shape
+    n = max(1, int(round((f1 - f0) / 2.1)))             # a new shape about every 2 frames (lively, not slow)
+    if n > len(seq):                                     # long words: open/close between syllables
+        ext = []
+        for k, v in enumerate(seq):
+            ext.append(v)
+            if k < len(seq) - 1: ext.append(8 if v in (3, 7) else (4 if v == 8 else 8))
+        if len(ext) < n:                                 # still too few: alternate each shape with a half-close
+            ext = [x for v in ext for x in (v, 4 if v in (3, 7) else 1 if v == 8 else 8)][: max(n, len(ext))]
+        seq = ext
     pick = [seq[int(k * len(seq) / n)] for k in range(n)]
+    for k in range(1, len(pick)):                        # never the same shape twice in a row
+        if pick[k] == pick[k - 1]: pick[k] = {3: 7, 7: 4, 4: 8, 8: 4, 1: 8}.get(pick[k], 8)
     for k, v in enumerate(pick):
         a0 = f0 + (f1 - f0) * k // n; a1 = f0 + (f1 - f0) * (k + 1) // n
         MOUTH[a0:a1] = 8 if v in (2, 5, 6) else v   # while talking: the smaller grin (also for F/V, as in the reference)
+
+# follow the real audio: where the voice is silent the mouth rests (no frozen open mouth over pauses)
+for _fi in range(NF_ALL):
+    _t = _fi / FPS
+    if ENG_START <= _t < ENG_START + ENG_DUR + 0.2: MOUTH[_fi] = 2; continue
+    _vt = _t if _t < HOOK_END_VO else _t - SHIFT
+    _q = int(_vt * 200)
+    if 0 <= _q < _n5 - 6 and _db5[_q:_q + 6].max() < -40: MOUTH[_fi] = 2
 
 def mouth_shape(t):
     return int(MOUTH[min(int(t * FPS), NF_ALL - 1)])
@@ -358,7 +376,7 @@ def _ev(word, n=1, dt=0.0):
     return at(word, n) + dt
 
 DEFAULT = "rest"
-MOVE = 2 / 30              # reference V2: poses snap in 2 frames, no in-between, no overshoot
+MOVE = 5 / 30              # smooth, animated (Blender-like) pose change: 5 frames with ease-out + small settle
 HOLD = 3.0                 # reference V2: ~3.3 s per pose
 
 G = lambda w, pose, n=1, hold=HOLD: (_ev(w, n) - 0.03, pose, hold)
@@ -377,16 +395,19 @@ TILTS = [2.0, -1.5, 2.5, -2.0, 1.0, -1.0, 2.0, -2.5]   # confident: steadier hea
 def _pose_vec(name):
     p = POSES[name]; return np.array([p["L"][0], p["L"][1], p["R"][0], p["R"][1]], float)
 
+def _ease_back(x, s=0.9):          # ease-out with a ~4% settle
+    x = min(max(x, 0.0), 1.0); x -= 1; return x * x * ((s + 1) * x + s) + 1
+
 def arm_pose(t):
     cur = _pose_vec(DEFAULT)
     for k, (st, name, hold) in enumerate(GEST_EVENTS):
         if st > t: break
         nxt = GEST_EVENTS[k + 1][0] if k + 1 < len(GEST_EVENTS) else 1e9
-        start = cur.copy(); x = min(max((t - st) / MOVE, 0.0), 1.0)
+        start = cur.copy(); x = _ease_back((t - st) / MOVE)
         cur = start + (_pose_vec(name) - start) * x
         end_hold = min(st + hold, nxt)
         if t > end_hold and nxt - end_hold > 0.4:          # snap back to rest if the next pose is far away
-            y = min(max((t - end_hold) / MOVE, 0.0), 1.0)
+            y = ease_io((t - end_hold) / (MOVE * 1.4))
             cur = cur + (_pose_vec(DEFAULT) - cur) * y
     return {"L": (cur[0], cur[1]), "R": (cur[2], cur[3])}
 
