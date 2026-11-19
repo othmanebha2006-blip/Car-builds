@@ -12,6 +12,7 @@ from scipy import ndimage
 PAD = 330            # side padding so raised arms stay on the canvas
 TOP = 90             # top padding: head tilt / body lean must never push the hat off the canvas
 SS = 2               # supersampling for strokes
+MOUTH_SCALE = 1.0    # set < 1 for a smaller talking mouth
 
 CFG = dict(
     stroke=20, outline=17, skin=(253, 207, 164), black=(0, 0, 0),
@@ -173,6 +174,7 @@ class StickRig:
         # v == 1 (closed) handled by pasting the original smile
 
     def face(self, viseme=1, blink=False, brow=0.0):
+        if viseme == 8: viseme = 2                   # "small grin" request -> this rig's teeth smile
         key = (viseme, blink, round(brow, 1))
         if key in self._face_cache: return self._face_cache[key]
         im = self.head.copy(); d = ImageDraw.Draw(im)
@@ -195,8 +197,9 @@ class StickRig:
                 def rounded_rectangle(s, b, radius, fill=None, outline=None, width=1):
                     s.dd.rounded_rectangle(((b[0] - cx + 100) * SS, (b[1] - cy + 50) * SS, (b[2] - cx + 100) * SS, (b[3] - cy + 50) * SS), radius=radius * SS, fill=fill, outline=outline, width=width * SS)
             self._mouth(_D(pd), viseme)
-            patch = patch.resize((200, 120), Image.LANCZOS)
-            im.alpha_composite(patch, (int(cx - 100), int(cy - 50)))
+            k = MOUTH_SCALE                               # calm, smaller talking mouth
+            patch = patch.resize((int(200 * k), int(120 * k)), Image.LANCZOS)
+            im.alpha_composite(patch, (int(cx - 100 * k), int(cy - 50 * k)))
         if blink:
             for ex, ey in self.c["eyes"]:
                 ex += PAD; ey += TOP; rx, ry = self.c["eye_r"]
