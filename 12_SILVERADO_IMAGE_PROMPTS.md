@@ -1,23 +1,23 @@
 # Image Prompts: Chevrolet Silverado 1500 6.2L
 
-Style: gloss black, bronze wheels, stock ride height (not lowered), illustrated (`09_CAR_STYLE_PROMPTS.md`).
+Style: gloss black, black wheels with red calipers, wide fender flares, natural street stance (not lowered), illustrated (`09_CAR_STYLE_PROMPTS.md`).
 **One ChatGPT chat** for all 8 truck images. Name each file exactly as listed. No text in the images.
 
 ## A. The Silverado (8 images, same chat, in order)
 1. **`silverado_01_front34.png`**:
-> 2016 Chevrolet Silverado 1500 LTZ crew cab pickup truck, front three-quarter view, gloss black paint, bronze satin-gold multi-spoke concave wheels, stock factory ride height (not lowered), natural suspension, dark tinted windows, digital car illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo watermark, no shadow, entire truck visible and centered, landscape 3:2
+> 2016 Chevrolet Silverado 1500 LTZ crew cab pickup truck, front three-quarter view, gloss black paint, gloss black multi-spoke wheels with red brake calipers, aggressive street body kit with wide fender flares, front splitter with red tow hooks, hood scoop and side skirts, sporty natural street stance (only a slight drop, wheels not tucked into the fenders), dark tinted windows, digital car illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo watermark, no shadow, entire truck visible and centered, landscape 3:2
 
 2. **`silverado_02_rear34.png`**:
-> The exact same truck and style, rear three-quarter view, bronze wheels, stock ride height, digital car illustration with clean thin dark outlines, plain pure white background, no text, entire truck visible, landscape 3:2
+> The exact same truck and style, rear three-quarter view, black wheels with red calipers, wide fender flares, natural street stance, digital car illustration with clean thin dark outlines, plain pure white background, no text, entire truck visible, landscape 3:2
 
 3. **`silverado_03_side.png`**:
-> The exact same truck and style, perfect side profile view, bronze wheels, stock ride height, digital car illustration with clean thin dark outlines, plain pure white background, no text, entire truck visible, landscape 3:2
+> The exact same truck and style, perfect side profile view, black wheels with red calipers, wide fender flares, natural street stance, digital car illustration with clean thin dark outlines, plain pure white background, no text, entire truck visible, landscape 3:2
 
 4. **`silverado_04_front.png`**:
-> The exact same truck and style, straight-on front view, bronze wheels, stock ride height, digital car illustration with clean thin dark outlines, plain pure white background, no text, entire truck visible, landscape 3:2
+> The exact same truck and style, straight-on front view, black wheels with red calipers, wide fender flares, natural street stance, digital car illustration with clean thin dark outlines, plain pure white background, no text, entire truck visible, landscape 3:2
 
 5. **`silverado_05_rear.png`**:
-> The exact same truck and style, straight-on rear view showing the tailgate, bronze wheels, stock ride height, digital car illustration with clean thin dark outlines, plain pure white background, no text, entire truck visible, landscape 3:2
+> The exact same truck and style, straight-on rear view showing the tailgate, black wheels with red calipers, wide fender flares, natural street stance, digital car illustration with clean thin dark outlines, plain pure white background, no text, entire truck visible, landscape 3:2
 
 6. **`silverado_06_hoodopen.png`**:
 > The exact same truck and style, front view with the hood open showing the V8 engine bay, digital car illustration with clean thin dark outlines, plain pure white background, no text, entire truck visible, landscape 3:2
@@ -26,7 +26,7 @@ Style: gloss black, bronze wheels, stock ride height (not lowered), illustrated 
 > The GM 6.2 litre EcoTec3 L86 V8 engine on its own, removed from the truck, isolated, digital illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, centered, square 1:1
 
 8. **`silverado_08_loaded.png`** (the "work truck" moment):
-> The exact same truck and style, rear three-quarter view with stacked wooden lumber boards in the truck bed, bronze wheels, stock ride height, digital car illustration with clean thin dark outlines, plain pure white background, no text, entire truck visible, landscape 3:2
+> The exact same truck and style, rear three-quarter view with stacked wooden lumber boards in the truck bed, black wheels with red calipers, wide fender flares, natural street stance, digital car illustration with clean thin dark outlines, plain pure white background, no text, entire truck visible, landscape 3:2
 
 ## B. Parts (new chat, same illustrated style)
 Use this line for each, replacing `[PART]`:

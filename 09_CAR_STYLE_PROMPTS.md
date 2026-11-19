@@ -6,15 +6,15 @@ The style is taken from the 3 reference pictures (Mercedes C-Class, Mitsubishi G
 | Element | Value |
 |---|---|
 | Paint | Gloss black, deep reflections |
-| Wheels | **Bronze / satin gold** multi-spoke (thin 10-spoke or split-spoke), deep concave |
-| Stance | **Stock factory ride height** (not lowered, user preference since the Silverado video) |
-| Aero | Factory body, no added lip or skirts |
+| Wheels | **Gloss black** multi-spoke, **red brake calipers** |
+| Stance | **Natural street stance**: only a slight drop, wheels not tucked (ref: `assets/style_refs/ref_silverado_street.jpg`) |
+| Aero | Aggressive street kit: wide fender flares, front splitter with red tow hooks, hood scoop, side skirts |
 | Windows | Dark tint |
 | Art style | **Digital illustration with photoreal shading**: clean thin dark outlines around the body, smooth gradients, slightly cartoon-like (not a raw photo) |
 | Background | Plain pure white (I remove it and put the grey background and logo behind it) |
 
 ## Style line (paste at the end of every car prompt)
-`, gloss black paint, bronze satin-gold multi-spoke concave wheels, stock factory ride height (not lowered), natural suspension, dark tinted windows, digital car illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo watermark, no shadow, entire car visible and centered, landscape 3:2`
+`, gloss black paint, gloss black multi-spoke wheels with red brake calipers, aggressive street body kit with wide fender flares, front splitter with red tow hooks, hood scoop and side skirts, sporty natural street stance (only a slight drop, wheels not tucked into the fenders), dark tinted windows, digital car illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo watermark, no shadow, entire car visible and centered, landscape 3:2`
 
 ## The 8 car prompts (one ChatGPT chat per car)
 Replace `[CAR]` with the year and model, for example `2012 Mercedes-Benz C-Class C63 AMG sedan` or `1999 Mitsubishi Galant VR-4`.
@@ -29,11 +29,11 @@ Replace `[CAR]` with the year and model, for example `2012 Mercedes-Benz C-Class
 8. **`car_08_front34_low.png`**: The exact same car and style, low aggressive front three-quarter angle + style line
 
 **Full example (#1, Mercedes):**
-> 2012 Mercedes-Benz C63 AMG sedan, front three-quarter view, gloss black paint, bronze satin-gold multi-spoke concave wheels, stock factory ride height (not lowered), natural suspension, dark tinted windows, digital car illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo watermark, no shadow, entire car visible and centered, landscape 3:2
+> 2012 Mercedes-Benz C63 AMG sedan, front three-quarter view, gloss black paint, gloss black multi-spoke wheels with red brake calipers, aggressive street body kit with wide fender flares, front splitter with red tow hooks, hood scoop and side skirts, sporty natural street stance (only a slight drop, wheels not tucked into the fenders), dark tinted windows, digital car illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo watermark, no shadow, entire car visible and centered, landscape 3:2
 
 ## Parts in the same style
 `Single [PART], isolated object, digital illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo, centered, square 1:1`
 
 ## Tips
-- If ChatGPT changes the wheel colour or lowers the car, reply: *"same car, keep the bronze wheels and stock ride height exactly as image 1"*.
+- If ChatGPT changes the wheels or slams the car, reply: *"same car, keep the black wheels, red calipers, body kit and natural stance exactly as image 1"*.
 - Keep all 8 images in **one chat** so the car stays identical.
