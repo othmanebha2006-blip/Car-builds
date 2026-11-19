@@ -164,6 +164,8 @@ def text_img(text, size, fill, stroke=0, stroke_fill=BLACK, pill=False):
 def put_text(frame, text, cx, cy, size, fill, stroke=0, scale=1.0, pill=False, anchor="c"):
     if not text:
         return
+    while size > 30 and text_img(text, size, fill, stroke, BLACK, pill).width > 980:   # always fits the screen
+        size -= 4
     im = text_img(text, size, fill, stroke, BLACK, pill)
     if abs(scale - 1) > 0.01:
         im = im.resize((max(1, int(im.width * scale)), max(1, int(im.height * scale))), Image.LANCZOS)
@@ -195,7 +197,6 @@ SCENES = [  # (start, kind, args) -- one shot held ~4-5 s
     (T["serious"], "car", "silverado_05_rear"),
     (T["start"], "mods", None),
     (T["procharger"], "feature", ("part_procharger", "PROCHARGER", "silverado_01_front34")),
-    (T["now"], "car", "silverado_03_side"),
     (T["sound"], "car", "silverado_02_rear34"),
     (T["basically"], "logo_car", "silverado_04_front"),
     (T["would"], "logo_car", "silverado_01_front34"),
