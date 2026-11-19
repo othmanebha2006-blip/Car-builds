@@ -190,6 +190,7 @@ T = dict(
 )
 SCENES = [  # (start, kind, args) -- one shot held ~4-5 s
     (0.0, "logo_car", "silverado_01_front34"),
+] + ([(ENG_START, "engine", None)] if USE_ENGINE else []) + [
     (T["talking"], "year", "silverado_03_side"),
     (T["glance"], "car", "silverado_04_front"),
     (T["something"], "car", "silverado_02_rear34"),
@@ -206,7 +207,7 @@ SHINES = [T["talking"] - 0.3, T["years"] + 0.9, T["would"] + 0.35]
 MODS = [(T["intake"], "part_intake", "COLD AIR INTAKE"), (T["headers"], "part_headers", "LONG-TUBE HEADERS"),
         (T["exhaust"], "part_exhaust", "HIGH-FLOW EXHAUST"), (T["ecu"], "part_tune", "ECU TUNE")]
 MOD_MODE = (T["start"] - 0.15, T["procharger"] - 0.1)
-FLASHES = []
+FLASHES = [ENG_START] if USE_ENGINE else []
 ENG_SHOTS = ["silverado_05_rear", "silverado_02_rear34"]
 LOGO = "logo_chevrolet"
 TITLE = ("2014-2018", "CHEVY SILVERADO 1500")
