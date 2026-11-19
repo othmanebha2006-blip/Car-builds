@@ -7,14 +7,14 @@ The style is taken from the 3 reference pictures (Mercedes C-Class, Mitsubishi G
 |---|---|
 | Paint | Gloss black, deep reflections |
 | Wheels | **Bronze / satin gold** multi-spoke (thin 10-spoke or split-spoke), deep concave |
-| Stance | **Slammed / lowered**, wheels tucked into the arches, slight negative camber |
-| Aero | Front lip / splitter, side skirts. Add a rear wing only on sporty / JDM cars |
+| Stance | **Stock factory ride height** (not lowered, user preference since the Silverado video) |
+| Aero | Factory body, no added lip or skirts |
 | Windows | Dark tint |
 | Art style | **Digital illustration with photoreal shading**: clean thin dark outlines around the body, smooth gradients, slightly cartoon-like (not a raw photo) |
 | Background | Plain pure white (I remove it and put the grey background and logo behind it) |
 
 ## Style line (paste at the end of every car prompt)
-`, gloss black paint, bronze satin-gold multi-spoke concave wheels, slammed lowered stance with wheels tucked into the fenders, slight negative camber, front lip splitter and side skirts, dark tinted windows, digital car illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo watermark, no shadow, entire car visible and centered, landscape 3:2`
+`, gloss black paint, bronze satin-gold multi-spoke concave wheels, stock factory ride height (not lowered), natural suspension, dark tinted windows, digital car illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo watermark, no shadow, entire car visible and centered, landscape 3:2`
 
 ## The 8 car prompts (one ChatGPT chat per car)
 Replace `[CAR]` with the year and model, for example `2012 Mercedes-Benz C-Class C63 AMG sedan` or `1999 Mitsubishi Galant VR-4`.
@@ -29,11 +29,11 @@ Replace `[CAR]` with the year and model, for example `2012 Mercedes-Benz C-Class
 8. **`car_08_front34_low.png`**: The exact same car and style, low aggressive front three-quarter angle + style line
 
 **Full example (#1, Mercedes):**
-> 2012 Mercedes-Benz C63 AMG sedan, front three-quarter view, gloss black paint, bronze satin-gold multi-spoke concave wheels, slammed lowered stance with wheels tucked into the fenders, slight negative camber, front lip splitter and side skirts, dark tinted windows, digital car illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo watermark, no shadow, entire car visible and centered, landscape 3:2
+> 2012 Mercedes-Benz C63 AMG sedan, front three-quarter view, gloss black paint, bronze satin-gold multi-spoke concave wheels, stock factory ride height (not lowered), natural suspension, dark tinted windows, digital car illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo watermark, no shadow, entire car visible and centered, landscape 3:2
 
 ## Parts in the same style
 `Single [PART], isolated object, digital illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo, centered, square 1:1`
 
 ## Tips
-- If ChatGPT changes the wheel colour or raises the car, reply: *"same car, keep the bronze wheels and slammed stance exactly as image 1"*.
+- If ChatGPT changes the wheel colour or raises the car, reply: *"same car, keep the bronze wheels and stock ride height exactly as image 1"*.
 - Keep all 8 images in **one chat** so the car stays identical.
