@@ -18,7 +18,7 @@ BLUE, GREEN, BLACK, WHITE = (30, 144, 255), (34, 197, 94), (12, 12, 12), (255, 2
 _W0 = json.load(open(f"{BUILD}/words.json"))
 _mk = next(k for k, w in enumerate(_W0) if w["w"] == "one.")
 HOOK_END_VO = (_W0[_mk]["e"] + _W0[_mk + 1]["s"]) / 2       # cut between "This is the Ford Flex EcoBoost." and "At first glance"
-USE_ENGINE = False                                            # no engine clip sent for this video
+USE_ENGINE = os.path.exists(f"{P}/raw/engine_sound.wav")   # clip sound after "this is the one."
 ENG_DUR = (sf.info(f"{P}/raw/engine_sound.wav").duration - 0.1) if USE_ENGINE else 0.0
 ENG_START = HOOK_END_VO + 0.05 if USE_ENGINE else 1e9
 SHIFT = (ENG_DUR + 0.2) if USE_ENGINE else 0.0                                         # voice resumes right after the engine sound
@@ -80,7 +80,7 @@ BG = Image.open(f"{P}/raw/background.png").convert("RGB").resize((W, H))
 sys.path.insert(0, f"{ROOT}/tools")
 import stick_rig
 from stick_rig import StickRig, POSES
-stick_rig.MOUTH_SCALE = 0.75                    # CHARACTER_RULES: calm, smaller mouth
+stick_rig.MOUTH_SCALE = 1.0                     # as in the previous Mecmation videos
 RIG = StickRig(f"{CUT}/character.png")
 
 # voice energy for lip-sync (in final time)
@@ -223,10 +223,10 @@ def draw_scene(fr, t):
     s = pop(t, t0) * (1 + 0.035 * min(dt / life, 1))   # pop-in + slow push-in
     fl = shine_level(t, SHINES)
     if kind == "car":
-        place(fr, arg, 540, CAR_Y, 960, 520, s, flash=fl)
+        place(fr, arg, 540, 560, 1030, 600, s, flash=fl)
     elif kind == "logo_car":
-        place(fr, LOGO, 540, 215, 440, 160, pop(t, t0 + 0.05))
-        place(fr, arg, 540, 590, 900, 420, s, flash=fl)
+        place(fr, LOGO, 540, 270, 640, 420, pop(t, t0 + 0.05))
+        place(fr, arg, 540, 620, 1010, 520, s, flash=fl)
     elif kind == "diag":
         place(fr, arg[0], 330, 300, 560, 300, pop(t, t0))
         place(fr, arg[1], 660, 640, 760, 400, pop(t, t0 + 0.12) * (1 + 0.03 * dt / life))
@@ -242,7 +242,7 @@ def draw_scene(fr, t):
         put_text(fr, typed(TITLE[0], t, T["years"], 14), 540, 180, 130, BLACK)
         if t > T["years"] + 0.6:
             put_text(fr, typed(TITLE[1], t, T["years"] + 0.6, 22), 540, 295, 60, BLACK)
-        place(fr, arg, 540, 600, 940, 440, s, flash=fl)
+        place(fr, arg, 540, 640, 1010, 500, s, flash=fl)
     elif kind == "price":
         place(fr, arg, 540, 620, 900, 420, s)
         if t > T.get("fraction", 1e9):
@@ -339,25 +339,14 @@ def _visemes(word):
 
 # per-frame mouth track: each word's shapes spread over its spoken time, 2-4 frames per shape, closed in pauses
 NF_ALL = int(TOTAL * FPS) + 2
-MOUTH = np.full(NF_ALL, 1, int)          # rest mouth = closed confident smile
+MOUTH = np.ones(NF_ALL, int)
 for w in WORDS:
     f0, f1 = int(round(w["S"] * FPS)), max(int(round(w["E"] * FPS)), int(round(w["S"] * FPS)) + 2)
     seq = _visemes(w["w"])
-    n = max(1, int(round((f1 - f0) / 3.2)))             # calm: a new shape about every 3 frames
-    if n > len(seq):                                     # long words: open/close between syllables
-        ext = []
-        for k, v in enumerate(seq):
-            ext.append(v)
-            if k < len(seq) - 1: ext.append(8 if v in (3, 7) else (4 if v == 8 else 8))
-        if len(ext) < n:                                 # still too few: alternate each shape with a half-close
-            ext = [x for v in ext for x in (v, 4 if v in (3, 7) else 1 if v == 8 else 8)][: max(n, len(ext))]
-        seq = ext
+    n = max(1, min(len(seq), (f1 - f0) // 2))           # at least 2 frames per shape
     pick = [seq[int(k * len(seq) / n)] for k in range(n)]
-    for k in range(1, len(pick)):                        # never the same shape twice in a row
-        if pick[k] == pick[k - 1]: pick[k] = {3: 7, 7: 4, 4: 8, 8: 4, 1: 8}.get(pick[k], 8)
     for k, v in enumerate(pick):
         a0 = f0 + (f1 - f0) * k // n; a1 = f0 + (f1 - f0) * (k + 1) // n
-        v = {3: 7, 5: 2, 6: 2, 8: 2}.get(v, v)             # calm: no wide-open shape, no extra shapes
         MOUTH[a0:a1] = v
 
 # follow the real audio: where the voice is silent the mouth rests (no frozen open mouth over pauses)
@@ -366,7 +355,7 @@ for _fi in range(NF_ALL):
     if ENG_START <= _t < ENG_START + ENG_DUR + 0.2: MOUTH[_fi] = 1; continue
     _vt = _t if _t < HOOK_END_VO else _t - SHIFT
     _q = int(_vt * 200)
-    if 0 <= _q < _n5 - 6 and _db5[_q:_q + 6].max() < -40: MOUTH[_fi] = 1
+    pass
 
 def mouth_shape(t):
     return int(MOUTH[min(int(t * FPS), NF_ALL - 1)])
@@ -374,20 +363,31 @@ def mouth_shape(t):
 def _ev(word, n=1, dt=0.0):
     return at(word, n) + dt
 
-DEFAULT = "hips"           # CHARACTER_RULES: confident, hands on hips the whole video
-MOVE = 5 / 30
-HOLD = 2.0
+DEFAULT = "tight"          # arms close to the body between gestures (reference default)
+MOVE = 0.35                # gesture move time (reference: 8-9 frames @24 fps)
+HOLD = 1.2                 # gesture hold (reference: ~1.1-1.2 s)
 
-G = lambda w, pose, n=1, hold=HOLD: (_ev(w, n) - 0.05, pose, hold)
-GEST_EVENTS = sorted([      # only the biggest moments (4)
-    G("street", "point_R"), G("420", "raise_R"), G("ProCharger", "point_R"), G("Would", "raise_R", hold=2.4),
+# gestures on the key word of each phrase (~ every 2 s): (word time, pose, hold)
+G = lambda w, pose, n=1, hold=HOLD: (_ev(w, n) - 0.12, pose, hold)
+GEST_EVENTS = sorted([
+    G("street", "present_R"), G("gap", "raise_L"), G("one.", "point_R"),
+    G("talking", "present_L"), G("2014–2018", "raise_R"), G("6.2-liter", "open"), G("ordinary", "shrug"),
+    G("trailer,", "present_R"), G("construction", "point_L"), G("underneath", "raise_R"),
+    G("EcoTec3", "present_L"), G("basic", "shrug"), G("factory,", "present_R"),
+    G("420", "raise_L"), G("460", "raise_R"), G("serious", "open"), G("everyday", "hips", hold=1.4),
+    G("interesting.", "shrug"), G("intake", "present_L", hold=1.0), G("long-tube", "present_L", hold=1.0),
+    G("exhaust", "present_L", hold=1.0), G("ECU", "present_L", hold=1.2), G("enough,", "shrug"),
+    G("ProCharger", "raise_R"), G("ordinary-looking", "open"), G("category.", "point_R"), G("muscle", "present_L"),
+    G("materials", "open"), G("Basically,", "present_R"), G("attitude", "raise_R"),
+    G("Would", "present_L"), G("street", "point_R", 2), G("sports", "shrug", 2, hold=TOTAL),
 ], key=lambda e: e[0])
-TILTS = [1.2, -1.0, 1.5, -1.2]
+BROW_EVENTS = ([ENG_START + 0.1] if USE_ENGINE else []) + [_ev(w) for w in ("gap", "one.", "ordinary", "420", "interesting.", "ProCharger", "attitude")] + [_ev("sports", 2)]
+NODS = [_ev(w) for w in ("materials,", "V8.", "460", "work.", "breathe,", "category.", "project.")]
 
 def _pose_vec(name):
     p = POSES[name]; return np.array([p["L"][0], p["L"][1], p["R"][0], p["R"][1]], float)
 
-def _ease_back(x, s=0.9):          # ease-out with a ~4% settle
+def _back(x, s=1.25):          # ease-out with a small overshoot (~8%)
     x = min(max(x, 0.0), 1.0); x -= 1; return x * x * ((s + 1) * x + s) + 1
 
 def arm_pose(t):
@@ -395,28 +395,44 @@ def arm_pose(t):
     for k, (st, name, hold) in enumerate(GEST_EVENTS):
         if st > t: break
         nxt = GEST_EVENTS[k + 1][0] if k + 1 < len(GEST_EVENTS) else 1e9
-        start = cur.copy(); x = _ease_back((t - st) / MOVE)
-        cur = start + (_pose_vec(name) - start) * x
-        end_hold = min(st + hold, nxt)
-        if t > end_hold:                                    # always back to hands on hips
-            y = ease_io((t - end_hold) / (MOVE * 1.4))
+        tgt = _pose_vec(name)
+        start = cur.copy()
+        x = _back((t - st) / MOVE)
+        cur = start + (tgt - start) * x
+        end_hold = min(st + MOVE + hold, nxt)
+        if t > end_hold and nxt - end_hold > 0.15:    # relax back to the default pose if nothing follows soon
+            y = ease_io((t - end_hold) / MOVE)
             cur = cur + (_pose_vec(DEFAULT) - cur) * y
     return {"L": (cur[0], cur[1]), "R": (cur[2], cur[3])}
 
+def _side_of(t):
+    """which side the current gesture favours (-1 left, +1 right, 0 both) -> head tilts toward it a little"""
+    side = 0.0
+    for st, name, hold in GEST_EVENTS:
+        if st <= t <= st + MOVE + hold:
+            side = -1.0 if name.endswith("_L") else 1.0 if name.endswith("_R") else 0.0
+    return side
+
 _rng = random.Random(11)
 BLINKS = []
-_t = 2.5
+_t = 1.4
 while _t < TOTAL:
-    BLINKS.append(_t); _t += _rng.uniform(6.0, 9.0)         # reference V2: rare blinks (~every 8 s)
+    BLINKS.append(_t); _t += _rng.uniform(2.8, 4.2)
 
 def head_state(t):
-    tilt = 0.0
-    for k, (st, name, hold) in enumerate(GEST_EVENTS):
-        x = ease_io((t - st) / 0.45) - ease_io((t - st - hold) / 0.45)
-        tilt += TILTS[k % len(TILTS)] * x
-    dx = 4 * math.sin(2 * math.pi * t / 9.1)
+    dx = 13 * math.sin(2 * math.pi * t / 5.7) + 5 * math.sin(2 * math.pi * t / 2.3 + 1.3)   # slow sideways drift
+    tilt = 2.5 * _side_of(t) * 1.0 + 0.6 * math.sin(2 * math.pi * t / 4.1)
+    tilt = max(-3.0, min(3.0, tilt))
+    dy = 0.0
+    for nt in NODS:
+        x = (t - nt) / 0.4
+        if 0 <= x <= 1: dy = 7 * math.sin(math.pi * x)
+    brow = 0.0
+    for bt in BROW_EVENTS:
+        x = (t - bt + 0.05) / 0.55
+        if 0 <= x <= 1: brow = max(brow, 11 * math.sin(math.pi * min(1, x * 1.4)) if x < 0.7 else 11 * (1 - ease_io((x - 0.7) / 0.3)))
     blink = any(0 <= t - b < 0.13 for b in BLINKS)
-    return dx, -4.0, tilt, 0.0, blink                         # chin slightly up, steady
+    return dx, dy, tilt, brow, blink
 
 def draw_char(fr, t):
     dx, dy, tilt, brow, blink = head_state(t)
