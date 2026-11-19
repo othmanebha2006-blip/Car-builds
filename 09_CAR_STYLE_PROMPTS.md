@@ -35,5 +35,5 @@ Replace `[CAR]` with the year and model, for example `2012 Mercedes-Benz C-Class
 `Single [PART], isolated object, digital illustration with photorealistic shading and clean thin dark outlines, plain pure white background, no text, no logo, centered, square 1:1`
 
 ## Tips
-- If ChatGPT changes the wheel colour or raises the car, reply: *"same car, keep the bronze wheels and stock ride height exactly as image 1"*.
+- If ChatGPT changes the wheel colour or lowers the car, reply: *"same car, keep the bronze wheels and stock ride height exactly as image 1"*.
 - Keep all 8 images in **one chat** so the car stays identical.
