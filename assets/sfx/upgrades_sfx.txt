@@ -1,0 +1,3 @@
+Upgrades pop-up sound (user-supplied clip), made very audible: silence trimmed (starts on the hit), body lifted up to +12 dB with a clean lookahead gain, gentle saturation (tanh drive 2) -> +5.8 LU louder than the original, peak -0.3 dBFS.
+Place it on the frame the upgrade appears.
+level: effect RMS (first 30 ms) / speech RMS = 1.60
