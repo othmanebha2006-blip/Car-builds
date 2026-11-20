@@ -606,8 +606,9 @@ def build_audio(path):
         if not any(abs(tt - x) < 0.25 for x in SHINES):        # the shine has its own sound
             add(ap, tt - 0.015, ap_gain)
     # parts, numbers and labels: their own sound, never the car's
-    pt = sfx_part()
-    pt_gain = 0.85 * _speech / np.sqrt((pt[: int(0.1 * SR)] ** 2).mean())
+    pt, _ = sf.read(f"{ROOT}/assets/sfx/popup_reference.wav", dtype="float32")     # the user's pop-up sound
+    pt_ratio = float(open(f"{ROOT}/assets/sfx/popup_reference.txt").read().split("= ")[-1].split()[0])
+    pt_gain = pt_ratio * _speech / np.sqrt((pt[: int(0.03 * SR)] ** 2).mean())
     for tt in [T["hp420"], T["lb460"], T["procharger"]] + [m[0] for m in MODS]:
         add(pt, tt, pt_gain)
     # the reference's own shine sound, placed on the first flash frame, at the reference's level relative to speech

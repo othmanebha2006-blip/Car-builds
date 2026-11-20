@@ -1,0 +1,4 @@
+Pop-up sound for upgrades/parts, extracted from the user-supplied clip (VW Golf, parts pop in at 1.70 s).
+A rising tone sweep 630 -> 1290 Hz, 47 ms, voice removed (spectral subtraction, voice below 560 Hz), tail = its own decay.
+Place it on the frame the part appears.
+level: effect RMS (first 30 ms) / speech RMS = 1.177
