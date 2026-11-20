@@ -1,0 +1,3 @@
+Typing sequence taken from the reference videos (7 occurrences in V1/V2/V3, voice removed).
+Starts 0.028 s before the first letter appears; the reference cuts it when the typing stops.
+level: effect RMS (first 1.0 s) / speech RMS = 0.40

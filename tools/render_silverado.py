@@ -580,7 +580,6 @@ def build_audio(path):
         eng = eng / np.sqrt((eng ** 2).mean()) * _sp * 1.15 * env(len(eng), 0.04, 0.4)   # engine a bit louder than the voice, by RMS
         add(eng, ENG_START, 1.0)
 
-    ck = sfx_click()
     ap, _ = sf.read(f"{ROOT}/assets/sfx/appear_reference.wav", dtype="float32")
     ap_ratio = float(open(f"{ROOT}/assets/sfx/appear_reference.txt").read().split("= ")[-1].split()[0])
     _env = np.convolve(np.abs(vo), np.ones(441) / 441, "same")
@@ -588,10 +587,20 @@ def build_audio(path):
     _ap_rms = np.sqrt((np.pad(ap, (0, max(0, int(0.4 * SR) - len(ap))))[: int(0.4 * SR)] ** 2).mean())
     ap_gain = ap_ratio * _speech / _ap_rms
     print(f"appear gain {ap_gain:.3f} (effect/speech RMS = {ap_ratio:.3f}, as in the reference)")
-    for t0, txt, cps in ((T["years"], TITLE[0], 14), (T["years"] + 0.6, TITLE[1], 22), (T["liter"], "6.2L ECOTEC3 V8", 24)):
-        for c in range(len(txt)):                       # typing sound: one key click per typed letter
-            if txt[c] != " ":
-                add(ck, t0 + (c + 1) / cps, 0.12 * random.uniform(0.75, 1.0))
+    # typing: the reference's own typing recording, started with the first letter and cut when the typing stops
+    ty, _ = sf.read(f"{ROOT}/assets/sfx/typing_reference.wav", dtype="float32")
+    ty_ratio = float(open(f"{ROOT}/assets/sfx/typing_reference.txt").read().split("= ")[-1].split()[0])
+    ty_gain = ty_ratio * _speech / np.sqrt((ty[: SR] ** 2).mean())
+    spans = sorted((t0 + 1 / cps, t0 + len(txt) / cps) for t0, txt, cps in
+                   ((T["years"], TITLE[0], 14), (T["years"] + 0.6, TITLE[1], 22), (T["liter"], "6.2L ECOTEC3 V8", 24)))
+    merged = []
+    for a, b in spans:                                   # titles typed back to back = one typing run
+        if merged and a - merged[-1][1] < 0.25: merged[-1][1] = max(merged[-1][1], b)
+        else: merged.append([a, b])
+    for a, b in merged:
+        L = int((b - a + 0.028 + 0.08) * SR); seg = np.tile(ty, L // len(ty) + 1)[:L].copy()
+        fo = int(0.03 * SR); seg[-fo:] *= np.linspace(1, 0, fo)
+        add(seg, a - 0.028, ty_gain)
     # the car appear sound (from the reference) only when a car shot appears
     for tt in [st for st, kind, _ in SCENES[1:] if kind != "engine"]:
         if not any(abs(tt - x) < 0.25 for x in SHINES):        # the shine has its own sound
