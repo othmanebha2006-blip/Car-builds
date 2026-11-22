@@ -1,0 +1,15 @@
+{"gestures": [
+ ["Every",1,"present_R"], ["minute.",1,"raise_L"], ["splits",1,"open"], ["trucks,",1,"present_L"],
+ ["Let's",1,"point_R"], ["Corvette",1,"present_R"], ["flagship",1,"raise_R"], ["Stingray",1,"present_L"],
+ ["E-Ray",1,"raise_L"], ["Z06",1,"point_R"], ["ZR1",1,"raise_R"], ["further,",1,"open"],
+ ["SUVs,",2,"present_L"], ["smallest,",1,"point_L"], ["Trailblazer,",1,"present_R"], ["Blazer,",1,"point_R"],
+ ["Tahoe",1,"raise_L"], ["family",1,"open"], ["longer,",1,"shrug"], ["passengers",1,"present_R"],
+ ["Colorado",1,"point_L"], ["Silverado",1,"point_R"], ["2,500",1,"raise_R"], ["3,500",1,"raise_L"],
+ ["heavy-duty",1,"open"], ["towing",1,"present_L"], ["badges,",1,"present_R"], ["LT",1,"point_R"],
+ ["RS",1,"point_L"], ["Z71",1,"raise_R"], ["ZR2",1,"raise_L"], ["SS",1,"point_R"], ["Performance",1,"open"],
+ ["electric",3,"present_L"], ["Equinox",2,"point_R"], ["Blazer",2,"point_L"], ["Silverado",2,"raise_R"],
+ ["learn",1,"present_R"], ["follow",1,"point_R",3.0]
+],
+"brows": [["one",1],["flagship",1],["ZR1",1],["heavy-duty",1],["SS",1],["follow",1]],
+"nods": [["minute.",1],["cars.",1],["motor.",1],["power.",1],["SUVs.",1],["cargo.",1],["model.",1],["hauling.",1],["hardware.",1],["Badge.",1],["EV.",3]]
+}

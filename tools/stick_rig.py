@@ -174,7 +174,7 @@ class StickRig:
         # v == 1 (closed) handled by pasting the original smile
 
     def face(self, viseme=1, blink=False, brow=0.0):
-        if viseme == 8: viseme = 2                   # "small grin" request -> this rig's teeth smile
+        if viseme in (6, 8): viseme = 2              # F/V and "small grin" -> the clean teeth smile (the boxed-teeth F/V read as dots)
         key = (viseme, blink, round(brow, 1))
         if key in self._face_cache: return self._face_cache[key]
         im = self.head.copy(); d = ImageDraw.Draw(im)
