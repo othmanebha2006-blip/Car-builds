@@ -1,0 +1,16 @@
+{"gestures": [
+ ["Every",1,"present_R"], ["minute.",1,"raise_L"], ["divides",1,"open"], ["SUVs,",1,"present_L"],
+ ["Let's",1,"point_R"], ["718",1,"raise_R"], ["mid-engine",1,"present_L"], ["Boxster",1,"point_L"],
+ ["Cayman",1,"point_R"], ["legendary",1,"raise_R"], ["iconic",1,"open"], ["rear.",1,"present_L"],
+ ["911",2,"present_R"], ["Carrera",1,"point_L"], ["S",1,"raise_R"], ["GTS",1,"raise_L"],
+ ["Turbo",1,"point_R"], ["GT3",1,"present_L"], ["RS",1,"raise_R"], ["further.",1,"open"],
+ ["SUVs.",1,"present_R"], ["Macan",1,"point_L"], ["Cayenne",1,"point_R"], ["spacious.",1,"open"],
+ ["different",1,"shrug"], ["GTS",2,"raise_L"], ["four-door",2,"present_L"], ["Panamera,",1,"point_R"],
+ ["Taycan,",1,"point_L"], ["electric",1,"raise_R"], ["badges.",1,"present_R"], ["S",2,"point_R"],
+ ["GTS",3,"raise_L"], ["GT",1,"point_L"], ["four",1,"raise_R"], ["E-Hybrid",1,"present_L"],
+ ["Cross",1,"point_R"], ["wagon-style",1,"open"], ["911",3,"present_R"], ["GTS",4,"raise_R"],
+ ["all-wheel",1,"open"], ["learn",1,"present_R"], ["follow",1,"point_R",3.0]
+],
+"brows": [["one",1],["legendary",1],["Turbo",1],["RS",1],["Taycan,",1],["GTS",4],["follow",1]],
+"nods": [["minute.",1],["cars.",2],["coupe.",1],["rear.",1],["versions.",2],["further.",1],["spacious.",1],["counterpart.",1],["drive.",1],["body.",1],["performance.",1]]
+}
