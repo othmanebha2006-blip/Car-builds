@@ -1,0 +1,17 @@
+{"keep_voice": true,
+"gestures": [
+ ["Every",1,"present_R"], ["story,",1,"open"], ["first",1,"raise_R"], ["state",1,"point_L"],
+ ["California,",1,"present_R"], ["Texas,",1,"point_L"], ["Florida,",1,"point_R"], ["York",1,"raise_L"],
+ ["designs",1,"open"], ["letters",1,"present_L"], ["assigned",1,"point_R"], ["sequence.",1,"open"],
+ ["UK",1,"raise_L"], ["don't",1,"shrug"], ["registered",1,"present_R"], ["another",1,"raise_R"],
+ ["sticker",1,"point_L"], ["registration",1,"present_R"], ["Florida,",2,"point_R"], ["birth",1,"raise_L"],
+ ["expiration",1,"present_L"], ["two",1,"raise_R"], ["front",1,"point_L"], ["back,",1,"point_R"],
+ ["rear",1,"present_R"], ["personalized",1,"raise_L"], ["choose",1,"open"], ["approved.",1,"present_L"],
+ ["can't",1,"shrug"], ["reject",1,"point_R"], ["official",1,"raise_R"], ["special",1,"open"],
+ ["universities,",1,"present_L"], ["military",1,"point_L"], ["sports",1,"present_R"], ["fund",1,"raise_L"],
+ ["Florida",3,"point_R"], ["sticker",2,"present_L"], ["08/27",1,"raise_R"], ["August",1,"open"],
+ ["learn",1,"present_R"], ["follow",1,"point_R",3.0]
+],
+"brows": [["story,",1],["UK",1],["sticker",1],["personalized",1],["anything.",1],["08/27",1],["follow",1]],
+"nods": [["name.",1],["systems.",1],["sequence.",1],["corner.",1],["year.",1],["plate.",1],["approved.",1],["anything.",1],["plates.",3],["causes.",1],["2027.",1]]
+}
