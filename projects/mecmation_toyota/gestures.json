@@ -1,0 +1,17 @@
+{"keep_voice": true,
+"gestures": [
+ ["Every",1,"present_R"], ["minute.",1,"raise_L"], ["splits",1,"open"], ["trucks,",1,"present_L"],
+ ["Let's",1,"point_R"], ["Corolla",1,"present_R"], ["Camry",1,"point_L"], ["comfortable.",1,"open"],
+ ["Prius",1,"point_R"], ["plug-in",1,"raise_R"], ["outlet.",1,"present_L"], ["Crown",1,"point_L"],
+ ["Mirai",1,"raise_R"], ["hydrogen",1,"open"], ["SUVs,",2,"present_R"], ["Cross",1,"point_L"],
+ ["RAV4,",1,"raise_L"], ["Highlander",1,"point_R"], ["Grand",1,"present_L"], ["4Runner",1,"raise_R"],
+ ["Land",1,"point_L"], ["serious",1,"open"], ["Sequoia",1,"present_R"], ["trucks,",2,"present_L"],
+ ["Tacoma",1,"point_L"], ["Tundra",1,"point_R"], ["Performance",1,"open"], ["GR",1,"raise_R"],
+ ["Gazoo",1,"present_L"], ["GR86",1,"point_R"], ["lightweight",1,"open"], ["GR",2,"point_L"],
+ ["GR",3,"raise_L"], ["TRD",1,"raise_R"], ["Development,",1,"present_L"], ["upgrades",1,"open"],
+ ["i-FORCE",1,"point_R"], ["turbocharged",1,"raise_L"], ["Tacoma",2,"present_R"], ["i-FORCE",2,"raise_R"],
+ ["off-road",4,"open"], ["learn",1,"present_R"], ["follow",1,"point_R",3.0]
+],
+"brows": [["one",1],["Mirai",1],["4Runner",1],["GR",1],["GR86",1],["TRD",1],["follow",1]],
+"nods": [["minute.",1],["cars.",1],["comfortable.",1],["outlet.",1],["petrol.",1],["Highlander.",1],["driving.",1],["SUV.",1],["model.",1],["car.",1],["models.",2],["powertrain.",1],["engine.",1]]
+}

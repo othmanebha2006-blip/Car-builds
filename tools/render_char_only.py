@@ -139,7 +139,8 @@ if __name__ == "__main__":
         for s in os.environ["PREVIEW"].split(","):
             Image.frombytes("RGB", (W, H), render(int(float(s) * FPS))).save(f"{BUILD}/prev_{s}.png")
         sys.exit()
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f"{BUILD}/vo_tight.wav", "-af", "loudnorm=I=-14:TP=-1:LRA=11,apad",
+    af = "apad" if SPEC.get("keep_voice") else "loudnorm=I=-14:TP=-1:LRA=11,apad"   # keep_voice: the voice exactly as delivered
+    subprocess.run(["ffmpeg", "-v", "error", "-y", "-i", f"{BUILD}/vo_tight.wav", "-af", af,
                     "-ar", "44100", "-t", f"{TOTAL:.3f}", f"{BUILD}/vo_norm.wav"], check=True)
     nf = int(TOTAL * FPS)
     ff = subprocess.Popen(["ffmpeg", "-v", "error", "-y", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{W}x{H}", "-r", str(FPS),
