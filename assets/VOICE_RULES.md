@@ -1,6 +1,8 @@
 # Voiceover rules (from the user, default for all future videos)
 
-"Cut the spaces" means: remove **only the clear pauses** where the speaker stops. Never touch the parts he reads smoothly.
+**Default now: do not touch the voice at all** (no cuts, no pause removal, no processing). Only cut pauses if the user explicitly asks in that message.
+
+"Cut the spaces" (only when asked) means: remove **only the clear pauses** where the speaker stops. Never touch the parts he reads smoothly.
 
 - Tool: `tools/cut_pauses.py IN.wav OUT.wav` (defaults: -47 dB, pauses >= 0.15 s, shortened to 0.10 s).
 - A pause = true silence for at least 0.15 s. Shorter gaps between words are the natural flow: left as they are.

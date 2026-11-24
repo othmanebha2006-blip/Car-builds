@@ -1,0 +1,17 @@
+{"keep_voice": true,
+"gestures": [
+ ["Every",1,"present_R"], ["minute.",1,"raise_L"], ["divides",1,"open"], ["trucks",1,"present_L"],
+ ["Versa",1,"point_R"], ["entry-level",1,"present_L"], ["Sentra",1,"point_L"], ["Altima",1,"point_R"],
+ ["comfort.",1,"open"], ["Leaf",1,"present_L"], ["electric",1,"raise_R"], ["Z",1,"point_R"],
+ ["GT-R",1,"raise_R"], ["legendary",1,"open"], ["Godzilla.",1,"raise_L"], ["SUVs,",2,"present_R"],
+ ["Kix",1,"point_L"], ["Rogue",1,"point_R"], ["family",1,"open"], ["Murano",1,"present_L"],
+ ["Pathfinder",1,"point_R"], ["three",1,"raise_R"], ["Armada",1,"present_R"], ["towing.",1,"open"],
+ ["trucks",2,"present_L"], ["Frontier",1,"point_L"], ["Titan",1,"point_R"], ["production",1,"shrug"],
+ ["2024.",1,"raise_L"], ["Nismo",1,"raise_R"], ["Motorsport.",1,"present_L"], ["division.",1,"open"],
+ ["power,",1,"raise_L"], ["motorsport-inspired",1,"present_R"], ["Z",2,"point_L"], ["GT-R",2,"point_R"],
+ ["different",1,"open"], ["Sport",1,"point_L"], ["Performance",3,"present_R"], ["Nismo",2,"raise_R"],
+ ["Z",4,"point_R"], ["track",1,"open"], ["learn",1,"present_R"], ["follow",1,"point_R",3.0]
+],
+"brows": [["one",1],["GT-R",1],["Godzilla.",1],["2024.",1],["Nismo",1],["Nismo",3],["follow",1]],
+"nods": [["minute.",1],["cars.",1],["sedan.",1],["comfort.",1],["car.",1],["crossover.",1],["SUV.",1],["seating.",1],["towing.",1],["model.",3],["division.",1],["further.",1],["equipment.",2]]
+}
