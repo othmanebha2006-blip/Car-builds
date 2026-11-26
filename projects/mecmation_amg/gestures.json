@@ -1,0 +1,16 @@
+{"keep_voice": true,
+"gestures": [
+ ["Every",1,"present_R"], ["minute,",1,"raise_L"], ["AMG",1,"raise_R"], ["Aufrecht,",1,"point_L"],
+ ["Melcher",1,"point_R"], ["Grossaspach,",1,"present_L"], ["founders",1,"open"], ["born.",1,"present_R"],
+ ["division.",1,"open"], ["full",1,"raise_R"], ["engine,",1,"present_L"], ["upgrades,",1,"open"],
+ ["line",1,"point_L"], ["sporty",1,"shrug"], ["wheels",1,"present_R"], ["no",1,"shrug"],
+ ["number",1,"present_L"], ["35",1,"point_L"], ["43",1,"present_R"], ["53",1,"raise_L"],
+ ["63",1,"raise_R"], ["don't",1,"shrug"], ["63",2,"point_R"], ["plug-in",1,"present_L"],
+ ["55",1,"raise_L"], ["GT",1,"point_R"], ["S",1,"raise_R"], ["E-Performance",1,"present_L"],
+ ["4MATIC+",1,"open"], ["GT",2,"point_L"], ["G63",1,"raise_R"], ["G-Class,",1,"present_R"],
+ ["GLC",1,"point_R"], ["E-Performance",2,"present_L"], ["SUV.",1,"open"], ["Top",1,"raise_R"],
+ ["S-version,",1,"point_L"], ["All-Wheel",1,"open"], ["learn",1,"present_R"], ["follow",1,"point_R",3.0]
+],
+"brows": [["one",1],["AMG",1],["no",1],["63",1],["don't",1],["G63",1],["Top",1],["follow",1]],
+"nods": [["born.",1],["division.",1],["power.",1],["range,",1],["size.",1],["version,",1],["system,",1],["family.",1],["SUV.",1],["Drive,",1]]
+}
