@@ -1,0 +1,17 @@
+{"keep_voice": true,
+"gestures": [
+ ["Audi",1,"present_R"], ["minute.",1,"raise_L"], ["two",1,"raise_R"], ["separate",1,"open"],
+ ["A",1,"point_L"], ["A3",1,"present_L"], ["A6,",1,"point_R"], ["Q",1,"raise_R"],
+ ["Q3",1,"point_L"], ["Q7",1,"present_R"], ["Q8.",1,"raise_L"], ["number",1,"open"],
+ ["bigger",1,"raise_R"], ["doesn't",1,"shrug"], ["badges",1,"present_L"], ["TFSI",1,"point_L"],
+ ["TDI",1,"point_R"], ["e-tron",1,"raise_R"], ["e-hybrid",1,"present_L"], ["body",1,"open"],
+ ["Avant",1,"point_L"], ["Sportback",1,"point_R"], ["sedan",1,"present_R"], ["performance",1,"open"],
+ ["S",1,"raise_L"], ["RS",1,"raise_R"], ["German",1,"present_L"], ["A5",1,"point_L"],
+ ["S5,",1,"present_R"], ["RS5.",1,"raise_R"], ["S-Line",1,"shrug"], ["styling",1,"present_L"],
+ ["quattro",1,"open"], ["40",1,"point_L"], ["45,",1,"point_R"], ["size",1,"open"],
+ ["RS6",1,"raise_R"], ["Avant",2,"present_L"], ["estate.",2,"point_R"], ["extra",1,"open"],
+ ["learn",1,"present_R"], ["follow",1,"point_R",3.0]
+],
+"brows": [["one",1],["Q",1],["doesn't",1],["e-tron",1],["Rennsport,",1],["RS5.",1],["S-Line",1],["RS6",1],["follow",1]],
+"nods": [["cars.",1],["Q8.",1],["range.",1],["engine.",1],["hybrid.",1],["saloon.",1],["sport.",1],["details.",1],["system.",1],["position.",1],["drive.",2]]
+}
