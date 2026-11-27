@@ -1,0 +1,16 @@
+{"keep_voice": true,
+"gestures": [
+ ["Every",1,"present_R"], ["minute.",1,"raise_L"], ["two",1,"raise_R"], ["A",1,"point_L"],
+ ["Q",1,"point_R"], ["regular",1,"present_L"], ["A3,",1,"point_L"], ["A5",1,"present_R"],
+ ["Q",2,"raise_R"], ["Q3",1,"point_L"], ["Q5,",1,"present_R"], ["Q8.",1,"raise_L"],
+ ["higher",1,"raise_R"], ["luxurious",1,"open"], ["A3",2,"point_L"], ["A6,",2,"point_R"],
+ ["Q5",2,"present_L"], ["doesn't",1,"shrug"], ["S",1,"raise_R"], ["sportier",1,"open"],
+ ["S3,",1,"point_R"], ["regular",2,"present_L"], ["RS",1,"raise_L"], ["Rennsport,",1,"present_R"],
+ ["A3",4,"point_L"], ["S3,",2,"present_R"], ["RS3,",1,"raise_R"], ["SUVs.",1,"open"],
+ ["letters",1,"present_L"], ["TFSI",1,"point_L"], ["TDI",1,"point_R"], ["TFSI",2,"present_L"],
+ ["e-tron",1,"raise_R"], ["quattro",1,"open"], ["RS",2,"raise_L"], ["TFSI",3,"point_R"],
+ ["high-performance",1,"open"], ["petrol-powered,",1,"present_L"], ["learn",1,"present_R"], ["follow",1,"point_R",3.0]
+],
+"brows": [["one",1],["two",1],["doesn't",1],["RS",1],["RS3,",1],["e-tron",1],["RS",2],["follow",1]],
+"nods": [["models.",1],["Q8.",1],["gets.",1],["there.",1],["further,",1],["SUVs.",1],["hood.",1],["electric.",1],["system,",1],["drive,",2]]
+}
