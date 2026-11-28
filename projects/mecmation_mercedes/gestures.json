@@ -1,0 +1,17 @@
+{"keep_voice": true,
+"gestures": [
+ ["Every",1,"present_R"], ["minute.",1,"raise_L"], ["letters",1,"open"], ["lineup.",1,"present_L"],
+ ["A-Class",1,"point_L"], ["B-Class",1,"point_R"], ["practical.",1,"open"], ["C-Class",1,"present_L"],
+ ["luxury",1,"present_R"], ["E-Class",1,"raise_L"], ["executive,",1,"open"], ["S-Class",1,"raise_R"],
+ ["luxurious",1,"present_L"], ["same",1,"shrug"], ["SUVs.",1,"open"], ["GL",1,"raise_R"],
+ ["GLA,",1,"point_L"], ["GLC,",1,"present_R"], ["GLS.",1,"point_R"], ["similar",1,"open"],
+ ["GLA",2,"point_L"], ["GLS",2,"raise_R"], ["S-Class,",2,"present_L"], ["G-Class",1,"point_R"],
+ ["boxy",1,"open"], ["G-Wagon.",1,"raise_L"], ["CL,",1,"raise_R"], ["CLA,",1,"point_L"],
+ ["four-door",1,"present_L"], ["CLE,",1,"point_R"], ["replaces",1,"open"], ["SL",1,"raise_L"],
+ ["roadster,",1,"present_R"], ["AMG",1,"raise_R"], ["performance",1,"open"], ["letters",3,"present_L"],
+ ["flagship",2,"raise_L"], ["SUV,",2,"point_R"], ["sports",2,"open"], ["learn",1,"present_R"],
+ ["follow",1,"point_R",3.0]
+],
+"brows": [["one",1],["S-Class",1],["same",1],["GL",1],["different.",1],["G-Wagon.",1],["AMG",1],["follow",1]],
+"nods": [["lineup.",1],["practical.",1],["saloon.",1],["makes.",1],["SUVs.",1],["GLS.",1],["smallest.",1],["G-Wagon.",1],["convertibles.",1],["car.",1],["car.",2]]
+}
